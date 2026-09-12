@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Android developer - Coroutines & Flow Core Mechanics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            android: {
+              green: '#3DDC84',
+              darkGreen: '#2bb868',
+              navy: '#073042',
+            },
+            brand: {
+              50: '#f0f9ff',
+              400: '#38bdf8',
+              500: '#0284c7',
+              600: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .code-font { font-family: 'Fira Code', monospace; }
+    .gradient-android {
+      background: linear-gradient(135deg, #3DDC84 0%, #38bdf8 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 9999px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    .prose-custom code {
+      font-family: 'Fira Code', monospace;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.375rem;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#0b0f19] dark:text-slate-100 antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-300">
+
+  <header class="sticky top-0 z-50 bg-white/90 dark:bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-sky-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
+          <i class="fa-brands fa-android text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-lg tracking-tight gradient-android">
+              Android developer
+            </h1>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+              Core Hub
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Chuyên đề chuyên sâu: Coroutines, Flow & State Machine
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="flex items-center space-x-2.5">
+        
+        <!-- Theme Toggle (Light / Dark) -->
+        <button onclick="toggleTheme()" id="theme-toggle-btn" title="Chuyển đổi giao diện Sáng / Tối" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-amber-400 transition-all shadow-sm">
+          <i id="theme-icon" class="fa-solid fa-sun text-sm"></i>
+        </button>
+
+        <!-- Curriculum Drawer Button -->
+        <button onclick="openLessonDrawer()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-2 shadow-sm">
+          <i class="fa-solid fa-book-open-reader text-emerald-500"></i>
+          <span>Giáo Trình</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold">Custom</span>
+        </button>
+
+        <!-- Cheatsheet Quick Modal Button -->
+        <button onclick="openQuickCheatSheet()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white text-xs font-semibold transition shadow-md shadow-emerald-600/20 flex items-center gap-1.5">
+          <i class="fa-solid fa-bolt text-xs"></i> Cheatsheet
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Hero Banner -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/10 via-sky-500/5 to-purple-500/10 dark:from-emerald-950/40 dark:via-slate-900 dark:to-sky-950/40 border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm">
+      <div class="relative z-10 max-w-3xl">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+            <i class="fa-brands fa-android"></i> Android Architecture & Concurrency
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+            <i class="fa-solid fa-layer-group"></i> Cơ Chế Lõi Tầng Sâu
+          </span>
+        </div>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Giải Phẫu Toàn Diện: Kotlin Coroutines & Reactive Flow
+        </h2>
+        <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+          Hệ thống hóa toàn bộ bản chất bên dưới: từ biến đổi CPS, bytecode decompile, bí mật bitmasking <code class="text-emerald-600 dark:text-emerald-300 font-mono text-xs font-bold">Integer.MIN_VALUE</code>, máy trạng thái JVM, nguyên tắc bất biến Exception Transparency cho tới cơ chế thu thập an toàn theo vòng đời trong Jetpack Compose.
+        </p>
+      </div>
+      <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 dark:bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    </div>
+
+    <!-- Topic Filtering Badges -->
+    <div class="flex flex-wrap items-center gap-2 pb-1">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mr-1"><i class="fa-solid fa-filter mr-1"></i>Chủ đề:</span>
+      <button onclick="filterTopics('all')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white shadow-sm transition" data-filter="all">Tất cả (6)</button>
+      <button onclick="filterTopics('cps')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition" data-filter="cps">CPS & JIT</button>
+      <button onclick="filterTopics('statemachine')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition" data-filter="statemachine">Label & Bitmask</button>
+      <button onclick="filterTopics('flowon')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition" data-filter="flowon">flowOn & Buffer</button>
+      <button onclick="filterTopics('transparency')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition" data-filter="transparency">Exception Transparency</button>
+      <button onclick="filterTopics('compose')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition" data-filter="compose">Compose & Lifecycle</button>
+      <button onclick="filterTopics('channels')" class="topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition" data-filter="channels">Channels & Ring Buffer</button>
+    </div>
+
+    <!-- Knowledge Modules Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="topic-cards-container">
+
+      <!-- Module 1: CPS & Bytecode & JIT -->
+      <article class="topic-card bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-sky-500/50 p-6 transition-all shadow-sm flex flex-col justify-between" data-category="cps">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center text-sm font-bold">1</span>
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">CPS, Decompile, JIT & COROUTINE_SUSPENDED</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Continuation Passing Style, Bytecode IR, JIT Tiered Compilation & Sentinel Singleton</p>
+              </div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-300 border border-sky-200 dark:border-sky-800 font-mono font-semibold">Bytecode & JVM</span>
+          </div>
+
+          <div class="mt-5 space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <div class="p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-[11px] space-y-1">
+              <div class="text-slate-400">// Kotlin Source:</div>
+              <div class="text-purple-600 dark:text-purple-400 font-bold">suspend fun fetchAvatar(id: String): Bitmap</div>
+              <div class="text-slate-400 mt-2">// Java Decompiled (CPS Signature):</div>
+              <div class="text-emerald-600 dark:text-emerald-400 font-bold">Object fetchAvatar(String id, Continuation&lt;? super Bitmap&gt; $completion)</div>
+            </div>
+
+            <div class="space-y-2">
+              <p><strong class="text-slate-900 dark:text-white">1. Bytecode & Mục Đích Decompile:</strong> Máy ảo JVM không hề có từ khóa <code class="bg-slate-200 dark:bg-slate-800 text-purple-600 dark:text-purple-300">suspend</code>. Trình biên dịch <code class="font-mono">kotlinc</code> biến đổi hàm thành bytecode dựa trên ngăn xếp. Decompile sang Java giúp ta bóc trần lớp ngụy trang "đồng bộ ảo" để thấy rõ máy trạng thái và các callback ngầm.</p>
+              
+              <p><strong class="text-slate-900 dark:text-white">2. Tại sao trả về `java.lang.Object`?</strong> Hàm suspend có 2 kịch bản rẽ nhánh độc lập:
+                <br/>• <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Fast-path (Đồng bộ):</span> Dữ liệu đã có sẵn trong bộ nhớ RAM LruCache $\rightarrow$ Trả về kết quả thật <code class="font-mono">Bitmap</code> ngay mà không suspend.
+                <br/>• <span class="text-amber-600 dark:text-amber-400 font-semibold">Slow-path (Bất đồng bộ):</span> Phải chờ mạng $\rightarrow$ Trả về hằng số cờ hiệu lính gác <code class="font-mono">COROUTINE_SUSPENDED</code> để Call Stack của Thread thoát ra tức thì.
+                <br/>Do đó, <code class="font-mono">Object</code> là kiểu cha duy nhất trên JVM có thể đại diện cho cả hai kiểu dữ liệu này.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">3. Hằng số `COROUTINE_SUSPENDED` có bao nhiêu giá trị?</strong>
+                Chỉ có <strong>duy nhất 1 giá trị Singleton</strong> trên toàn bộ JVM runtime, được định nghĩa trong enum nội bộ <code class="font-mono text-sky-600 dark:text-sky-300">CoroutineSingletons.COROUTINE_SUSPENDED</code>. Bất kỳ hàm suspend nào khi tạm dừng đều trả về cùng một tham chiếu duy nhất này.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">4. JIT Compiler (Tiered Compilation & Escape Analysis):</strong>
+                JVM ban đầu dùng Interpreter để chạy Bytecode. Với các hàm Coroutine gọi thường xuyên (Hot Spots), <strong>C1/C2 JIT Compiler</strong> biên dịch thẳng sang Native Machine Code. Đặc biệt, kỹ thuật <em>Escape Analysis</em> cho phép JIT loại bỏ hoàn toàn việc cấp phát đối tượng <code class="font-mono">ContinuationImpl</code> lên Heap nếu hàm chạy theo nhánh Fast-path đồng bộ.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Module 2: Label & State Machine Bitmasking -->
+      <article class="topic-card bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 p-6 transition-all shadow-sm flex flex-col justify-between" data-category="statemachine">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center text-sm font-bold">2</span>
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Biến `label` & Kỹ Thuật Bitmasking Integer.MIN_VALUE</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Virtual Program Counter, Tái sử dụng đối tượng Heap & Bảo vệ Đệ quy</p>
+              </div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-mono font-semibold">State Machine</span>
+          </div>
+
+          <div class="mt-5 space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <div class="p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-[11px] space-y-1">
+              <div class="text-slate-400">// Tái sử dụng instance qua Bitmasking bit 31:</div>
+              <div class="text-amber-600 dark:text-amber-400 font-semibold">this.label |= Integer.MIN_VALUE; <span class="text-slate-400">// Bật bit 31 (0x80000000)</span></div>
+              <div class="text-slate-400 mt-1.5">// Kiểm tra tại hàm cha khi được gọi lại:</div>
+              <div class="text-emerald-600 dark:text-emerald-400 font-semibold">if ((continuation.label & Integer.MIN_VALUE) != 0) {</div>
+              <div class="text-emerald-600 dark:text-emerald-400 font-semibold">&nbsp;&nbsp;continuation.label -= Integer.MIN_VALUE; <span class="text-slate-400">// Tắt bit 31, TÁI SỬ DỤNG!</span></div>
+              <div class="text-emerald-600 dark:text-emerald-400 font-semibold">} else { continuation = new StateMachine(); } <span class="text-slate-400">// Cuộc gọi mới / Đệ quy</span></div>
+            </div>
+
+            <div class="space-y-2">
+              <p><strong class="text-slate-900 dark:text-white">1. Vai trò của `label` (Virtual PC):</strong> Vì Call Stack bị hủy sạch khi hàm trả về <code class="font-mono">COROUTINE_SUSPENDED</code>, biến <code class="font-mono text-purple-600 dark:text-purple-400">label</code> (0, 1, 2, 3...) lưu trên Heap đóng vai trò như con trỏ lệnh ảo. Khi coroutine được resume, cấu trúc <code class="font-mono">switch(continuation.label)</code> nhảy cóc chính xác đến nhánh lệnh tương ứng thay vì chạy lại từ đầu.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">2. Tại sao `instanceof` thất bại khi có Đệ quy (Recursion)?</strong>
+                Nếu chỉ kiểm tra <code class="font-mono">completion instanceof StateMachine</code> để tái sử dụng, thì khi hàm gọi đệ quy chính nó, tầng con sẽ lấy nhầm StateMachine của tầng cha và ghi đè các biến cục bộ (<code class="font-mono">L$0, L$1</code>). Dữ liệu của cha bị phá hủy hoàn toàn (State Corruption)!</p>
+
+              <p><strong class="text-slate-900 dark:text-white">3. Bí thuật Bitmasking `Integer.MIN_VALUE` (0x80000000):</strong>
+                Biến `label` là số nguyên dương nhỏ nên bit thứ 31 (Sign bit) luôn bằng 0. Trong <code class="font-mono">invokeSuspend()</code>, compiler thực hiện phép <code class="font-mono">|= Integer.MIN_VALUE</code> để bật bit dấu. Dấu hiệu này chứng minh: <em>"Tôi đang ngủ dậy từ I/O, hãy tái sử dụng tôi!"</em>. Kỹ thuật này giúp <strong>0 cấp phát đối tượng mới trên Heap, 0 áp lực lên Garbage Collector</strong> mà không tốn thêm dù chỉ 1 byte RAM cho biến boolean cờ hiệu.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">4. `ResultKt.throwOnFailure($result)`:</strong> Nằm ở đầu mỗi case nhãn để ném ngược lại exception nếu tác vụ bất đồng bộ gặp lỗi, giúp bạn bọc try-catch duy nhất ở bên ngoài mà vẫn bắt được mọi lỗi phát sinh ở bất kỳ điểm suspend nào.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Module 3: flowOn & Context Preservation -->
+      <article class="topic-card bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 p-6 transition-all shadow-sm flex flex-col justify-between" data-category="flowon">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-sm font-bold">3</span>
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Toán Tử flowOn & Nguyên Tắc Context Preservation</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Ranh giới Upstream/Downstream, Bản chất Buffer & Giải mã 2 Tầng Crash App</p>
+              </div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono font-semibold">Threading</span>
+          </div>
+
+          <div class="mt-5 space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <div class="space-y-2">
+              <p><strong class="text-slate-900 dark:text-white">1. Khái niệm Nền Tảng:</strong>
+                <br/>• <span class="text-sky-600 dark:text-sky-400 font-semibold">Upstream (Thượng nguồn):</span> Toàn bộ các toán tử, khối mã nằm <em>phía trước</em> mốc toán tử.
+                <br/>• <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Downstream (Hạ lưu):</span> Toàn bộ các toán tử và khối <code class="font-mono">collect { }</code> nằm <em>phía sau</em> mốc toán tử.
+                <br/>• <span class="text-amber-600 dark:text-amber-400 font-semibold">Hàm tuần tự vs Luồng liên tục:</span> <code class="font-mono">suspend fun</code> trả về 1 ly cà phê duy nhất rồi kết thúc; còn <code class="font-mono">Flow</code> là vòi nước phát liên tục tọa độ GPS hoặc stream sự kiện theo thời gian.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">2. Nguyên tắc Context Preservation:</strong>
+                Khối thu thập <code class="font-mono text-emerald-600 dark:text-emerald-400">collect { }</code> LUÔN thực thi trên chính <code class="font-mono">CoroutineContext</code> của Scope gọi nó. Nguồn phát Upstream tuyệt đối không được phép tự ý ép luồng lên người thu thập Collector.</p>
+
+              <div class="p-3 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-900/50">
+                <strong class="text-red-700 dark:text-red-300 font-bold block mb-1">3. Giải Mã 2 Tầng Crash Khi Bọc withContext Quanh emit():</strong>
+                <span class="text-slate-600 dark:text-slate-300">
+                  • <strong>Tầng 1 (Lỗi kiến trúc):</strong> Lời gọi <code class="font-mono">emit()</code> gọi trực tiếp vào <code class="font-mono">collect</code>. Lớp bảo vệ <code class="font-mono text-red-500">SafeCollector</code> so sánh context lúc emit và context lúc collect, phát hiện sai lệch và chủ động ném ngay <code class="font-mono text-red-500">IllegalStateException: Flow invariant is violated</code>.<br/>
+                  • <strong>Tầng 2 (Lỗi hệ điều hành Android):</strong> Nếu Kotlin không chặn ở Tầng 1, khối <code class="font-mono">collect</code> cập nhật View UI sẽ bị lôi sang chạy trên background thread của IO, lập tức crash hệ thống với <code class="font-mono text-red-500">CalledFromWrongThreadException: Only the original thread that created a view hierarchy can touch its views</code>!
+                </span>
+              </div>
+
+              <p><strong class="text-slate-900 dark:text-white">4. Có thể `collect` trên Dispatchers.IO được không?</strong>
+                <strong>HOÀN TOÀN ĐƯỢC VÀ RẤT PHỔ BIẾN!</strong> Khi mục đích thu thập dữ liệu không phải cập nhật View UI mà là ghi đĩa lớn (ghi File, lưu Room SQLite Database). Lúc này toàn bộ downstream sẽ chạy trên IO an toàn.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">5. Kiến trúc Channel ngầm định của `flowOn`:</strong>
+                <code class="font-mono">flowOn</code> tách luồng thành <strong>2 Coroutine riêng biệt</strong>: Coroutine A (Upstream chạy trên IO) đẩy dữ liệu vào một <code class="font-mono">Channel</code> bộ đệm 64 phần tử; Coroutine B (Downstream chạy trên context của Collector) kéo dữ liệu từ Channel ra để xử lý. Nhờ Channel đệm trung gian, hai bên chạy song song độc lập và bảo toàn ngữ cảnh hoàn hảo.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Module 4: Exception Transparency -->
+      <article class="topic-card bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-pink-500/50 p-6 transition-all shadow-sm flex flex-col justify-between" data-category="transparency">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20 flex items-center justify-center text-sm font-bold">4</span>
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Exception Transparency (Minh Bạch Ngoại Lệ)</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Bản chất emit(), Thảm họa nuốt chửng lỗi hạ lưu & Ranh giới toán tử .catch</p>
+              </div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-pink-50 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800 font-mono font-semibold">Safety</span>
+          </div>
+
+          <div class="mt-5 space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <div class="space-y-2">
+              <p><strong class="text-slate-900 dark:text-white">1. Nguyên Tắc Cốt Lõi:</strong> Nguồn phát Upstream không bao giờ được phép nuốt chửng (swallow) hoặc làm biến đổi các ngoại lệ xảy ra từ phía người nhận Downstream. Downstream phải luôn nhận được lỗi dưới dạng unhandled failure trừ khi chủ động xử lý.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">2. Thảm họa bọc `try-catch` quanh `emit()`:</strong>
+                Lời gọi <code class="font-mono text-pink-600 dark:text-pink-400">emit(data)</code> thực chất gọi trực tiếp khối lệnh bên trong <code class="font-mono text-emerald-600 dark:text-emerald-400">collect { ... }</code>. Nếu UI Composable gặp lỗi truy cập mảng rỗng (<code class="font-mono text-red-500">IndexOutOfBoundsException</code>), lỗi này sẽ văng ngược lại khối try-catch tại Repository!
+                <br/>$\rightarrow$ <strong>Hậu quả:</strong> Repository bắt nhầm và ghi log "Lỗi mạng", nuốt chửng lỗi UI. Lập trình viên đi debug server trong khi bug nằm chình ình ở giao diện, biến thành lỗi âm thầm (silent bug) cực kỳ nguy hiểm!</p>
+
+              <p><strong class="text-slate-900 dark:text-white">3. Cách Viết Chuẩn Tại Repository:</strong>
+                Chỉ bọc try-catch cho phần sinh dữ liệu, tuyệt đối không bọc <code class="font-mono">emit()</code>:
+                <br/><code class="font-mono bg-slate-100 dark:bg-slate-950 px-2 py-1 rounded block mt-1">val res = try { api.getUser() } catch(e: IOException) { null }<br/>if (res != null) emit(res) // NẰM HOÀN TOÀN NGOÀI TRY-CATCH</code></p>
+
+              <p><strong class="text-slate-900 dark:text-white">4. Ranh Giới Bất Biến Của Toán Tử `.catch`:</strong>
+                Toán tử <code class="font-mono text-pink-600 dark:text-pink-400">.catch { e -> ... }</code> <strong>CHỈ BẮT ĐƯỢC NGOẠI LỆ TỪ UPSTREAM</strong> (nằm trước nó). Nó tuyệt đối <strong>KHÔNG BAO GIỜ</strong> can thiệp vào ngoại lệ xảy ra trong khối <code class="font-mono">collect { }</code> phía sau nó. Lỗi ở collect thuộc quyền sở hữu của Collector và phải được xử lý ở UI Scope.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Module 5: Compose Lifecycle & 5000ms -->
+      <article class="topic-card bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 p-6 transition-all shadow-sm flex flex-col justify-between" data-category="compose">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-sm font-bold">5</span>
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Jetpack Compose & Vòng Đời Thu Thập An Toàn</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">collectAsState vs collectAsStateWithLifecycle, repeatOnLifecycle & Bí mật 5000ms</p>
+              </div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-mono font-semibold">Jetpack Compose</span>
+          </div>
+
+          <div class="mt-5 space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <div class="space-y-2">
+              <p><strong class="text-slate-900 dark:text-white">1. Hai Tầng Vòng Đời Độc Lập:</strong>
+                <br/>• <strong>Composition Lifecycle:</strong> Enter Composition $\rightarrow$ Recompose $\rightarrow$ Leave/Dispose (gắn với cây giao diện UI Node).
+                <br/>• <strong>Android Platform Lifecycle:</strong> CREATED $\rightarrow$ STARTED $\rightarrow$ RESUMED $\rightarrow$ STOPPED $\rightarrow$ DESTROYED (gắn với Activity/Fragment OS).</p>
+
+              <p><strong class="text-slate-900 dark:text-white">2. Điểm Yếu Chết Người Của `collectAsState()`:</strong>
+                Chỉ lắng nghe Composition Lifecycle. Khi người dùng nhấn Home đưa app vào chế độ chạy ngầm (<code class="font-mono">onStop()</code>), Composable chưa bị Dispose nên <strong>coroutine thu thập vẫn chạy ầm ầm dưới nền</strong>, tiếp tục nhận WebSocket, giải mã JSON và đốt sạch pin, băng thông 4G!</p>
+
+              <p><strong class="text-slate-900 dark:text-white">3. Lời Giải Cứu `collectAsStateWithLifecycle()`:</strong>
+                Tích hợp sẵn <code class="font-mono text-amber-600 dark:text-amber-400 font-semibold">repeatOnLifecycle(Lifecycle.State.STARTED)</code>: Tự động hủy coroutine thu thập khi Activity rơi vào trạng thái <code class="font-mono">STOPPED</code>, và tự động tạo lại coroutine để nhận dữ liệu mới nhất khi app quay lại Foreground.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">4. Bí Mật Con Số 5000ms Trong `WhileSubscribed(5000)`:</strong>
+                Khi người dùng <strong>xoay màn hình (Configuration Change)</strong>, Activity cũ bị hủy và Activity mới tạo lại mất khoảng 200-500ms. Số lượng subscriber lúc này giảm về 0.
+                <br/>• Nếu đặt timeout = 0: Upstream bị hủy ngay, sau đó 300ms lại phải nạp lại từ đầu gây nháy màn hình (flicker) và lãng phí request mạng.
+                <br/>• Khoảng chờ <strong>5000ms</strong> đóng vai trò đệm: Nếu người dùng chỉ xoay máy, subscriber kết nối lại trước 5s $\rightarrow$ Giữ nguyên kết nối sống không gián đoạn!</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Module 6: Channels, Conflate & Dispatchers -->
+      <article class="topic-card bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 p-6 transition-all shadow-sm flex flex-col justify-between" data-category="channels">
+        <div>
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm font-bold">6</span>
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Channels, Conflate & Cơ Chế Ring Buffer</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Rendezvous Handshake, SharedFlow Ring Buffer, conflate vs collectLatest & Dispatchers.Main.immediate</p>
+              </div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-mono font-semibold">Advanced Concurrency</span>
+          </div>
+
+          <div class="mt-5 space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <div class="space-y-2">
+              <p><strong class="text-slate-900 dark:text-white">1. `Channel.RENDEZVOUS` (Dung lượng buffer = 0):</strong>
+                Bên gửi <code class="font-mono">send()</code> bị suspend cho đến khi có bên nhận gọi <code class="font-mono">receive()</code>. Hai bên bắt tay trao đổi dữ liệu trực tiếp tại điểm hẹn (rendezvous) mà không lưu trữ tạm trên RAM.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">2. `conflate()` vs `collectLatest { }`:</strong>
+                <br/>• <code class="font-mono text-sky-600 dark:text-sky-400 font-semibold">conflate()</code>: Drop dữ liệu ở khay đệm của Producer (chỉ giữ item mới nhất trong buffer dung lượng 1).
+                <br/>• <code class="font-mono text-pink-600 dark:text-pink-400 font-semibold">collectLatest()</code>: Cho phép downstream nhận item, nhưng nếu item mới đến khi item cũ chưa xử lý xong, nó sẽ <strong>cancel coroutine cũ</strong> để khởi động coroutine mới.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">3. Kiến trúc Ring Buffer trong `SharedFlow`:</strong>
+                Để phục vụ hàng chục subscriber cùng lúc mà không tốn chi phí copy mảng dữ liệu, `SharedFlow` duy trì duy nhất một mảng vòng (<code class="font-mono">Object[]</code>) trên Heap. Mỗi collector chỉ giữ một con trỏ chỉ số slot riêng biệt để đọc dữ liệu độc lập.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">4. `Dispatchers.Main.immediate`:</strong>
+                Khác với <code class="font-mono">Dispatchers.Main</code> luôn đẩy task vào Message Queue của Android Looper, <code class="font-mono">.immediate</code> kiểm tra nếu thread hiện tại đã là Main Thread thì sẽ thực thi khối lệnh đồng bộ ngay lập tức tại frame đó, loại bỏ độ trễ phân phối và chống hiện tượng nháy giao diện.</p>
+
+              <p><strong class="text-slate-900 dark:text-white">5. `ThreadLocal` & `.asContextElement()`:</strong>
+                Khi coroutine resume trên một thread khác trong thread pool, giá trị ThreadLocal cũ sẽ bị mất. Dùng <code class="font-mono">myThreadLocal.asContextElement()</code> giúp coroutine tự động khôi phục biến thread-local này mỗi khi chuyển thread.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- Quick Rules Cheatsheet Modal -->
+  <div id="cheat-sheet-modal" class="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl transition-colors">
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-bolt text-emerald-500"></i> Quy Tắc Vàng Coroutines & Flow (Android Production Rules)
+        </h3>
+        <button onclick="closeQuickCheatSheet()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto custom-scroll space-y-4 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+        <div class="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+          <h4 class="font-bold text-sky-600 dark:text-sky-400 mb-1">1. Đổi Luồng (flowOn vs withContext)</h4>
+          <p>Tuyệt đối không dùng <code class="font-mono text-red-500 font-semibold">withContext(Dispatchers.IO)</code> bọc xung quanh <code class="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">emit()</code>. Hãy dùng toán tử <code class="font-mono text-sky-600 dark:text-sky-400 font-semibold">.flowOn(Dispatchers.IO)</code> để tôn trọng nguyên tắc Context Preservation.</p>
+        </div>
+        <div class="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+          <h4 class="font-bold text-pink-600 dark:text-pink-400 mb-1">2. Exception Transparency</h4>
+          <p>Không bao giờ bọc <code class="font-mono text-red-500 font-semibold">try-catch</code> quanh <code class="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">emit()</code> ở tầng Repository vì sẽ nuốt chửng lỗi của tầng UI. Hãy xử lý ngoại lệ Upstream bằng toán tử <code class="font-mono text-pink-600 dark:text-pink-400 font-semibold">.catch { ... }</code>.</p>
+        </div>
+        <div class="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+          <h4 class="font-bold text-amber-600 dark:text-amber-400 mb-1">3. Jetpack Compose UI Collection</h4>
+          <p>Luôn thu thập StateFlow bằng <code class="font-mono text-amber-600 dark:text-amber-400 font-semibold">collectAsStateWithLifecycle()</code> thay vì <code class="font-mono text-slate-500 font-semibold">collectAsState()</code> để giải phóng CPU khi app xuống background.</p>
+        </div>
+        <div class="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+          <h4 class="font-bold text-purple-600 dark:text-purple-400 mb-1">4. ViewModel StateFlow Timeout 5000ms</h4>
+          <p>Khi dùng <code class="font-mono text-purple-600 dark:text-purple-400 font-semibold">.stateIn()</code>, luôn cấu hình <code class="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">SharingStarted.WhileSubscribed(5000)</code> để giữ kết nối sống qua các lần xoay màn hình (Configuration Changes).</p>
+        </div>
+        <div class="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+          <h4 class="font-bold text-emerald-600 dark:text-emerald-400 mb-1">5. Structured Concurrency & NonCancellable</h4>
+          <p>Khi coroutine đã bị hủy và cần dọn dẹp trong khối <code class="font-mono text-slate-600 dark:text-slate-300 font-semibold">finally</code> bằng một hàm suspend, bắt buộc phải bọc trong <code class="font-mono text-sky-600 dark:text-sky-400 font-semibold">withContext(NonCancellable)</code>.</p>
+        </div>
+      </div>
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+        <button onclick="closeQuickCheatSheet()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-white transition">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Curriculum & Lesson Navigator Drawer Modal -->
+  <div id="lesson-drawer-modal" class="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-sm hidden items-center justify-end">
+    <div class="bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 w-full max-w-xl h-full flex flex-col shadow-2xl transition-colors">
+      
+      <!-- Drawer Header -->
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase font-mono">Giáo Trình Cá Nhân</span>
+          <h3 class="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2 mt-0.5">
+            <i class="fa-solid fa-graduation-cap text-emerald-500"></i> Lộ Trình Học Tập Của Bạn
+          </h3>
+        </div>
+        <button onclick="closeLessonDrawer()" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <!-- Syllabus Status Banner -->
+      <div class="p-5 bg-emerald-50 dark:bg-emerald-950/20 border-b border-emerald-100 dark:border-emerald-900/40">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-pen-ruler"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white">Sẵn Sàng Cập Nhật Giáo Trình Mới</h4>
+            <p class="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+              Bạn có thể gửi danh sách các bài học, module hoặc mục tiêu riêng để tích hợp trực tiếp vào mục này.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Lesson Info -->
+      <div class="p-5 overflow-y-auto custom-scroll space-y-4 flex-1">
+        <div class="p-4 rounded-xl border-2 border-emerald-500/70 bg-gradient-to-r from-emerald-500/5 to-sky-500/5 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 relative shadow-md">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              Bài Hiện Tại • Core Mechanics
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold">
+              Đang xem
+            </span>
+          </div>
+          <h4 class="text-sm font-bold text-slate-900 dark:text-white mt-1">
+            Kotlin Coroutines & Flow Under-the-hood
+          </h4>
+          <p class="text-xs text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
+            CPS Bytecode, State Machine (`label`), `Integer.MIN_VALUE` Bitmasking, Context Preservation, Exception Transparency và Vòng đời Jetpack Compose.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center space-y-2 py-8 bg-slate-50/50 dark:bg-slate-950/30">
+          <div class="w-10 h-10 mx-auto rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+            <i class="fa-solid fa-plus"></i>
+          </div>
+          <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Khu vực dành cho giáo trình tùy chỉnh của bạn
+          </p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            Hãy chia sẻ các chủ đề hoặc danh sách bài bạn muốn đưa vào lộ trình, tôi sẽ cập nhật ngay lập tức vào bảng giáo trình này.
+          </p>
+        </div>
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950/40">
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Android Developer Hub</span>
+        <button onclick="closeLessonDrawer()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-800 dark:text-white transition">
+          Đóng
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Theme Toggle Handler (Light / Dark)
+    function toggleTheme() {
+      const html = document.documentElement;
+      const themeIcon = document.getElementById('theme-icon');
+      const isDark = html.classList.contains('dark');
+
+      if (isDark) {
+        html.classList.remove('dark');
+        themeIcon.className = 'fa-solid fa-moon text-sm text-slate-700';
+      } else {
+        html.classList.add('dark');
+        themeIcon.className = 'fa-solid fa-sun text-sm text-amber-400';
+      }
+    }
+
+    // Filter Knowledge Modules
+    function filterTopics(cat) {
+      document.querySelectorAll('.topic-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-filter') === cat) {
+          btn.className = "topic-filter-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white shadow-sm transition";
+        } else {
+          btn.className = "topic-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition";
+        }
+      });
+
+      document.querySelectorAll('.topic-card').forEach(card => {
+        if (cat === 'all' || card.getAttribute('data-category') === cat) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    // Modal & Drawer Helpers
+    function openQuickCheatSheet() {
+      const modal = document.getElementById('cheat-sheet-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeQuickCheatSheet() {
+      const modal = document.getElementById('cheat-sheet-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function openLessonDrawer() {
+      const drawer = document.getElementById('lesson-drawer-modal');
+      drawer.classList.remove('hidden');
+      drawer.classList.add('flex');
+    }
+
+    function closeLessonDrawer() {
+      const drawer = document.getElementById('lesson-drawer-modal');
+      drawer.classList.add('hidden');
+      drawer.classList.remove('flex');
+    }
+  </script>
+</body>
+</html>
