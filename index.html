@@ -705,14 +705,15 @@ public final Object invokeSuspend(Object result) {
               </div>
             `
           },
-          {
+        {
             id: "compose-lifecycle-collection",
             num: "07",
             badge: "Compose Lifecycle",
             title: "Jetpack Compose & Vòng Đời Thu Thập An Toàn",
-            desc: "Deadlock tuần tự trong repeatOnLifecycle, collectAsStateWithLifecycle & bí mật 5000ms.",
+            desc: "collectAsStateWithLifecycle, repeatOnLifecycle, cạm bẫy Deadlock tuần tự & bí mật 5000ms.",
             content: `
               <div class="space-y-8">
+                <!-- Header Module -->
                 <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
                   <div class="flex items-center gap-2 mb-3">
                     <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">Chuyên Đề 07</span>
@@ -722,36 +723,198 @@ public final Object invokeSuspend(Object result) {
                     Jetpack Compose & Vòng Đời Thu Thập An Toàn
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Bẫy Thu Thập Tuần Tự Trong repeatOnLifecycle & Bí Mật 5000ms.
+                    Trong Declarative UI, việc thu thập StateFlow/Flow đòi hỏi phải nhận biết chính xác vòng đời (Lifecycle-aware) để triệt tiêu hao pin ngầm, rò rỉ bộ nhớ và crash do cập nhật UI khi View đã bị hủy.
                   </p>
                 </div>
 
-                <div class="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/50 text-xs text-slate-700 dark:text-slate-300 space-y-2">
-                  <strong class="text-amber-800 dark:text-amber-300 font-bold block text-sm">1. Cạm bẫy thu thập tuần tự trong repeatOnLifecycle:</strong>
-                  <p>Hàm <code>collect</code> là một lệnh suspend vô tận. Nếu viết 2 lệnh tuần tự:</p>
-                  <div class="p-2.5 bg-slate-900 text-red-400 font-mono rounded-lg">
-                    repeatOnLifecycle(STARTED) {<br/>
-                    &nbsp;&nbsp;flowA.collect { } // Chạy mãi mãi!<br/>
-                    &nbsp;&nbsp;flowB.collect { } // DÒNG NÀY BỊ BỎ ĐÓI VĨNH VIỄN!<br/>
-                    }
-                  </div>
-                  <p><strong>&rarr; Cách sửa chuẩn:</strong> Bọc từng flow trong một coroutine con riêng:</p>
-                  <div class="p-2.5 bg-slate-900 text-emerald-400 font-mono rounded-lg">
-                    repeatOnLifecycle(STARTED) {<br/>
-                    &nbsp;&nbsp;launch { flowA.collect { } }<br/>
-                    &nbsp;&nbsp;launch { flowB.collect { } }<br/>
-                    }
-                  </div>
-                </div>
+                <!-- 1. VẤN ĐỀ CỐT LÕI -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Vấn Đề Cốt Lõi Khi Thu Thập Flow Trong Compose
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Rất nhiều developer mắc sai lầm khi dùng <code>CoroutineScope</code> thông thường hoặc <code>LaunchedEffect</code> đơn thuần để collect Flow UI:
+                  </p>
 
-                <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed list-disc pl-5">
-                  <li><strong>2. collectAsState vs collectAsStateWithLifecycle:</strong> <code>collectAsState()</code> chỉ quan tâm Composition Lifecycle; khi đưa app vào background, coroutine vẫn chạy gây tốn pin/mạng. Dùng <code>collectAsStateWithLifecycle()</code> để tự động hủy khi app sang <code>STOPPED</code> và thu thập lại khi sang <code>STARTED</code>.</li>
-                  <li><strong>3. Bí Mật Con Số 5000ms trong WhileSubscribed(5000):</strong> Khi xoay màn hình (Configuration Change), Activity cũ bị hủy và Activity mới tạo lại mất 200 - 500ms. Khoảng chờ 5000ms đóng vai trò vùng đệm: nếu subscriber kết nối lại trước 5s, upstream giữ nguyên không bị hủy, tránh việc nạp lại dữ liệu gây giật/nháy màn hình và lãng phí request mạng.</li>
-                </ul>
+                  <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl font-mono text-xs text-red-700 dark:text-red-300 space-y-2">
+                    <div class="font-bold">// SAI LẦM NGUY HIỂM: Vẫn tiếp tục chạy ngầm khi app vào Background</div>
+                    <div>LaunchedEffect(Unit) {</div>
+                    <div>&nbsp;&nbsp;viewModel.uiState.collect { state -></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;// App bị thu nhỏ/khóa màn hình: Vẫn tốn pin, fetch dữ liệu mạng lãng phí!</div>
+                    <div>&nbsp;&nbsp;}</div>
+                    <div>}</div>
+                  </div>
+
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <strong>Bản chất nguyên nhân:</strong> <code>LaunchedEffect</code> chỉ gắn liền với <strong>Composition Lifecycle</strong> (khi Composable còn nằm trên cây giao diện). Nó hoàn toàn không nhận biết <strong>Android OS Lifecycle</strong> (khi Activity/Fragment bị che khuất, sang màn hình khác hoặc đưa vào background).
+                  </p>
+                </section>
+
+                <!-- 2. CÁC GIẢI PHÁP CHUẨN MỰC -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Các Giải Pháp Thu Thập Chuẩn Mực
+                  </h3>
+
+                  <!-- Cách 1: collectAsStateWithLifecycle -->
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-sm text-emerald-600 dark:text-emerald-400">Cách 1: collectAsStateWithLifecycle() &mdash; Chuẩn Mực Cho UI State</span>
+                      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">Khuyên Dùng</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                      API từ thư viện <code>androidx.lifecycle:lifecycle-runtime-compose</code> tự động đồng bộ hóa việc thu thập Flow với vòng đời của <code>LifecycleOwner</code>:
+                    </p>
+                    <pre class="p-3.5 bg-slate-950 text-slate-200 font-mono text-xs rounded-xl overflow-x-auto custom-scroll leading-relaxed"><code>@Composable
+fun ProfileScreen(viewModel: ProfileViewModel) {
+    // Tự động hủy collect khi Lifecycle xuống dưới Lifecycle.State.STARTED
+    // và tự động đăng ký lại khi màn hình quay trở lại STARTED
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ProfileContent(state = uiState)
+}</code></pre>
+                    <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-disc pl-5">
+                      <li>Mặc định sử dụng ngưỡng <code>minActiveState = Lifecycle.State.STARTED</code>.</li>
+                      <li>Khi người dùng bấm Home đưa app vào nền, coroutine thu thập lập tức bị hủy để giải phóng tài nguyên.</li>
+                    </ul>
+                  </div>
+
+                  <!-- Cách 2: repeatOnLifecycle -->
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-sm text-amber-600 dark:text-amber-400">Cách 2: repeatOnLifecycle &mdash; Cho One-time Events (Snackbar, Navigation)</span>
+                      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">Side Effects</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Với các sự kiện chỉ phát sinh 1 lần (hiển thị thông báo Toast/Snackbar, điều hướng màn hình), không nên chuyển thành State mà cần collect trực tiếp trong khối hiệu ứng:
+                    </p>
+                    <pre class="p-3.5 bg-slate-950 text-slate-200 font-mono text-xs rounded-xl overflow-x-auto custom-scroll leading-relaxed"><code>@Composable
+fun NotificationHandler(
+    viewModel: NotificationViewModel,
+    snackbarHostState: SnackbarHostState
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(viewModel.navigationEvents, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.navigationEvents.collect { event ->
+                when (event) {
+                    is NavEvent.ShowToast -> snackbarHostState.showSnackbar(event.message)
+                    is NavEvent.NavigateToDetail -> { /* Điều hướng */ }
+                }
+            }
+        }
+    }
+}</code></pre>
+                  </div>
+                </section>
+
+                <!-- 3. CẠM BẪY PHỎNG VẤN: THU THẬP TUẦN TỰ -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Cạm Bẫy Phỏng Vấn: Bỏ Đói Tuần Tự Trong repeatOnLifecycle
+                  </h3>
+
+                  <div class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2 leading-relaxed">
+                    <strong class="text-amber-800 dark:text-amber-300 font-bold block text-sm">Hiện Tượng Bỏ Đói Luồng (Stream Starvation):</strong>
+                    <p>Hàm <code>collect</code> là một hàm suspend vô tận. Nếu bạn viết tuần tự 2 luồng trong cùng một khối <code>repeatOnLifecycle</code>:</p>
+                    
+                    <div class="p-3 bg-slate-900 text-red-400 font-mono rounded-lg">
+                      repeatOnLifecycle(Lifecycle.State.STARTED) {<br/>
+                      &nbsp;&nbsp;viewModel.uiState.collect { ... } // Chạy mãi mãi không nhả luồng!<br/>
+                      &nbsp;&nbsp;viewModel.navEvents.collect { ... } // DÒNG NÀY BỊ BỎ ĐÓI VĨNH VIỄN, KHÔNG BAO GIỜ CHẠY!<br/>
+                      }
+                    </div>
+
+                    <strong class="text-emerald-700 dark:text-emerald-400 font-bold block pt-1">&rarr; Cách Sửa Chuẩn: Tách Thành Các Coroutine Con Độc Lập</strong>
+                    <div class="p-3 bg-slate-900 text-emerald-400 font-mono rounded-lg">
+                      repeatOnLifecycle(Lifecycle.State.STARTED) {<br/>
+                      &nbsp;&nbsp;launch { viewModel.uiState.collect { ... } }<br/>
+                      &nbsp;&nbsp;launch { viewModel.navEvents.collect { ... } }<br/>
+                      }
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 4. SO SÁNH CÁC CƠ CHẾ -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">4</span>
+                    So Sánh Sự Khác Biệt Giữa Các Cơ Chế
+                  </h3>
+
+                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th class="p-3">API</th>
+                          <th class="p-3">Nhận Biết OS Lifecycle?</th>
+                          <th class="p-3">Ngữ Cảnh Phù Hợp</th>
+                          <th class="p-3">Rủi Ro Nếu Dùng Sai</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">collectAsStateWithLifecycle()</td>
+                          <td class="p-3 font-semibold text-emerald-600 dark:text-emerald-400">Có (Lifecycle.State)</td>
+                          <td class="p-3">Chuyển StateFlow/Flow thành Compose State cho UI hiển thị</td>
+                          <td class="p-3">Không có rủi ro (Chuẩn mực tối ưu tài nguyên).</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-red-500">collectAsState()</td>
+                          <td class="p-3 font-semibold text-red-500">Không (Chỉ Composition)</td>
+                          <td class="p-3">Compose Multiplatform thuần không gắn chặt vào Android Lifecycle</td>
+                          <td class="p-3">Giữ kết nối ngầm, hao pin và mạng khi app xuống background trên Android.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">repeatOnLifecycle()</td>
+                          <td class="p-3 font-semibold text-emerald-600 dark:text-emerald-400">Có (Lifecycle.State)</td>
+                          <td class="p-3">Xử lý One-time events (Snackbar, Navigation) trong <code>LaunchedEffect</code></td>
+                          <td class="p-3">Phải bọc trong <code>LaunchedEffect</code> để tránh kích hoạt lại ngoài ý muốn mỗi lần recompose.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <!-- 5. VIEWMODEL KẾT HỢP VỚI 5000MS -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">5</span>
+                    Mô Hình Khép Kín & Bí Mật Con Số 5000ms Trong WhileSubscribed
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Ở tầng ViewModel, cấu hình <code>stateIn</code> phối hợp nhịp nhàng với UI qua chính sách <code>SharingStarted.WhileSubscribed(5_000)</code>:
+                  </p>
+
+                  <pre class="p-4 bg-slate-950 text-slate-200 font-mono text-xs rounded-xl overflow-x-auto custom-scroll leading-relaxed"><code>class MyViewModel(private val repository: DataRepository) : ViewModel() {
+
+    val uiState: StateFlow&lt;UiState&gt; = repository.getDataStream()
+        .map { UiState.Success(it) }
+        .stateIn(
+            scope = viewModelScope,
+            // 5000ms: Bộ đệm giữ luồng sống khi xoay màn hình (Configuration Changes)
+            started = SharingStarted.WhileSubscribed(5_000), 
+            initialValue = UiState.Loading
+        )
+}</code></pre>
+
+                  <div class="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2">
+                    <strong class="text-purple-700 dark:text-purple-300 font-bold block text-sm">Tại Sao Lại Là 5000ms (5 Giây)?</strong>
+                    <ul class="list-disc pl-5 space-y-1.5 leading-relaxed">
+                      <li><strong>Xoay màn hình (Configuration Changes):</strong> Activity cũ bị hủy và Activity mới tạo lại mất khoảng 200ms – 500ms. Trong khoảnh khắc đó, số lượng subscriber tạm thời rớt về 0.</li>
+                      <li><strong>Vùng đệm giữ kết nối (Grace Period):</strong> Con số 5000ms giúp giữ upstream Flow (Room, Network, Location updates) không bị hủy ngay lập tức. Khi Activity mới tạo xong và đăng ký lại trước 5s, upstream giữ nguyên luồng dữ liệu liên tục, tránh giật nhấp nháy màn hình và không tốn request mạng thừa.</li>
+                      <li><strong>Rời app thực sự:</strong> Nếu sau 5s mà không có màn hình nào đăng ký lại (người dùng nhấn Home thoát app), upstream mới chính thức đóng lại để tiết kiệm tối đa pin và dữ liệu.</li>
+                    </ul>
+                  </div>
+                </section>
               </div>
             `
           },
-       {
+          {
             id: "channels-concurrency-select",
             num: "08",
             badge: "Concurrency",
