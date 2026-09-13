@@ -287,33 +287,124 @@ Object fetchUser(String id, Continuation \\$completion) {
             desc: "Virtual Program Counter, Tái sử dụng đối tượng Heap & Cơ chế phòng chống hỏng trạng thái đệ quy.",
             content: `
               <div class="space-y-8">
+                <!-- Header Module -->
                 <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
                   <div class="flex items-center gap-2 mb-3">
                     <span class="px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-mono font-bold">Chuyên Đề 02</span>
-                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Memory Management</span>
+                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Bitwise & Memory</span>
                   </div>
                   <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                     Biến label & Kỹ Thuật Bitmasking Integer.MIN_VALUE
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Virtual Program Counter, Tái Sử Dụng Đối Tượng Heap & Cơ chế phòng chống hỏng trạng thái khi gọi đệ quy.
+                    Virtual Program Counter, Kỹ thuật tái sử dụng instance State Machine trên Heap và cơ chế bảo vệ trạng thái khi gọi hàm đệ quy.
                   </p>
                 </div>
 
-                <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-1 overflow-x-auto custom-scroll">
-                  <div class="text-slate-500">// Bật bit 31 (0x80000000) tại invokeSuspend:</div>
-                  <div class="text-amber-400">this.label |= Integer.MIN_VALUE;</div>
-                  <div class="text-slate-500 mt-2">// Kiểm tra tái sử dụng tại hàm callee:</div>
-                  <div class="text-emerald-400">if ((continuation.label & Integer.MIN_VALUE) != 0) {</div>
-                  <div class="text-emerald-400">&nbsp;&nbsp;continuation.label -= Integer.MIN_VALUE; <span class="text-slate-500">// Tắt bit 31, TÁI SỬ DỤNG!</span></div>
-                  <div class="text-emerald-400">} else { continuation = new StateMachine(); } <span class="text-slate-500">// Cuộc gọi mới hoặc Đệ quy</span></div>
-                </div>
+                <!-- 1. Biến label là gì -->
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Biến label là gì?
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Mỗi hàm suspend được compiler biến đổi thành một lớp kế thừa từ <code>ContinuationImpl</code> chứa một biến trạng thái: <code class="font-mono text-purple-600 dark:text-purple-400 font-bold">int label</code>.
+                  </p>
+                  <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed list-disc pl-5">
+                    <li><strong>Nhiệm vụ:</strong> Đóng vai trò là con trỏ chỉ số bước (<em>Virtual Program Counter / Step Index</em>) trong State Machine để điều hướng khối <code>switch (this.label)</code>.</li>
+                    <li><strong>Quy ước giá trị:</strong>
+                      <br/>• <code>label = 0</code>: Bắt đầu hàm, chưa suspend lần nào.
+                      <br/>• <code>label = 1, 2, ...</code>: Đang resume lại ngay sau điểm suspend thứ 1, thứ 2,...
+                    </li>
+                    <li><strong>Mục đích:</strong> Giúp khôi phục chính xác dòng lệnh cần chạy tiếp theo khi <code>resumeWith()</code> được kích hoạt mà không phải thực thi lại code từ đầu hàm.</li>
+                  </ul>
+                </section>
 
-                <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed list-disc pl-5">
-                  <li><strong>1. Vai trò của biến label:</strong> Biến <code>label</code> lưu trên Heap đóng vai trò Program Counter ảo. Khi coroutine resume, khối <code>switch(continuation.label)</code> nhảy cóc chính xác đến nhãn lệnh tiếp theo thay vì phải chạy lại từ đầu hàm.</li>
-                  <li><strong>2. Tại sao instanceof thất bại khi có Đệ Quy?</strong> Nếu compiler chỉ kiểm tra <code>completion instanceof StateMachine</code>, khi hàm gọi đệ quy chính nó, tầng con sẽ nhận nhầm instance StateMachine của hàm cha và ghi đè các biến cục bộ (<code>L$0, L$1</code>), gây lỗi State Corruption nghiêm trọng!</li>
-                  <li><strong>3. Bí thuật Bitmasking Integer.MIN_VALUE:</strong> Bật bit thứ 31 đóng vai trò con tem xác thực: <em>"Tôi vừa ngủ dậy từ I/O, hãy tái sử dụng tôi!"</em>. Nhờ đó đạt được <strong>0 cấp phát mới trên Heap, 0 áp lực GC</strong> mà không tốn thêm byte RAM nào cho biến cờ hiệu riêng.</li>
-                </ul>
+                <!-- 2. Kỹ thuật Bitmasking Integer.MIN_VALUE -->
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Kỹ Thuật Bitmasking Integer.MIN_VALUE Trong Java Decompile
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Khi decompile một hàm suspend sang Java, đoạn code mở đầu luôn có cấu trúc kiểm tra và gắn cờ tái sử dụng instance:
+                  </p>
+
+                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
+                    <div class="bg-slate-950 px-4 py-2 text-[11px] text-slate-400 border-b border-slate-800 flex justify-between items-center">
+                      <span>Cấu Trúc Java Decompile Kiểm Tra Tái Sử Dụng</span>
+                      <span class="text-amber-400">Bytecode Flow</span>
+                    </div>
+                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>// Giả sử hàm suspend ban đầu: suspend fun loadData(): String
+public final Object loadData(Continuation completion) {
+    MyContinuation \\$continuation;
+
+    if (completion instanceof MyContinuation) {
+        \\$continuation = (MyContinuation) completion;
+
+        // KIỂM TRA VÀ BẬT/TẮT CỜ TÁI SỬ DỤNG
+        if ((\\$continuation.label & Integer.MIN_VALUE) != 0) {
+            \\$continuation.label -= Integer.MIN_VALUE; // Gỡ cờ dấu, khôi phục label gốc
+            goto label_continue;
+        }
+    }
+    // Nếu gọi lần đầu hoặc gọi đệ quy: cấp phát Continuation mới
+    \\$continuation = new MyContinuation(completion);
+
+label_continue:
+    ...
+}
+
+// Bên trong phương thức invokeSuspend của class \\$continuation:
+public final Object invokeSuspend(Object result) {
+    this.result = result;
+    this.label |= Integer.MIN_VALUE; // GẮN CỜ BIT ĐẦU TIÊN (MSB)
+    return loadData(this);           // GỌI LẠI HÀM VỚI CHÍNH CONTINUATION NÀY
+}</code></pre>
+                  </div>
+                </section>
+
+                <!-- 3. Tại sao lại dùng Integer.MIN_VALUE -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Tại Sao Compiler Lại Dùng Integer.MIN_VALUE?
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <code>Integer.MIN_VALUE</code> trong Java là số nguyên có bit dấu (Most Significant Bit - MSB, bit thứ 31) bằng 1 và tất cả các bit còn lại bằng 0:
+                  </p>
+
+                  <div class="p-3 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs text-center text-sky-600 dark:text-sky-400 font-bold overflow-x-auto">
+                    Integer.MIN_VALUE = 0x80000000 = 10000000_00000000_00000000_00000000 (Nhị phân)
+                  </div>
+
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Kỹ thuật này tận dụng bit dấu làm một cờ nhị phân (boolean flag) mà <strong>không làm mất đi giá trị số bước thực tế của <code>label</code></strong> (vốn chỉ dùng các bit thấp 0, 1, 2...):
+                  </p>
+
+                  <div class="space-y-3">
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                      <strong class="text-amber-600 dark:text-amber-400 block font-bold text-sm">1. Đánh dấu (Marking):</strong>
+                      <p>Khi coroutine resume, <code>invokeSuspend()</code> được kích hoạt. Lệnh <code class="font-mono font-bold">label |= Integer.MIN_VALUE</code> sẽ bật bit cao nhất lên 1. Ý nghĩa: <em>"Tôi đang gọi lại hàm cha để resume State Machine, hãy tái sử dụng chính object this này."</em></p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                      <strong class="text-sky-600 dark:text-sky-400 block font-bold text-sm">2. Kiểm tra (Checking):</strong>
+                      <p>Trong hàm cha, phép tính <code class="font-mono font-bold">(\\$continuation.label & Integer.MIN_VALUE) != 0</code> kiểm tra xem bit cao nhất có đang bật hay không. Nếu khác 0: chứng tỏ đây là một pha resume gọi lại &rarr; Compiler lập tức tái sử dụng mà không gọi <code>new MyContinuation(...)</code>.</p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                      <strong class="text-emerald-600 dark:text-emerald-400 block font-bold text-sm">3. Gỡ cờ (Unmarking):</strong>
+                      <p>Lệnh <code class="font-mono font-bold">\\$continuation.label -= Integer.MIN_VALUE</code> (hoặc tương đương <code>^= Integer.MIN_VALUE</code>) lật bit dấu trở về 0. Giá trị <code>label</code> được trả lại chính xác con số nguyên ban đầu (0, 1, 2...) để đi vào khối <code>switch (label)</code>.</p>
+                    </div>
+                  </div>
+
+                  <!-- Chống hỏng trạng thái khi đệ quy -->
+                  <div class="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
+                    <strong class="text-purple-700 dark:text-purple-300 font-bold block">Tác dụng phòng chống hỏng trạng thái khi Đệ Quy (Recursion Safety):</strong>
+                    <p>Nếu compiler chỉ kiểm tra <code>completion instanceof MyContinuation</code> mà không có con tem bit dấu này, thì khi hàm suspend gọi đệ quy chính nó, tầng con sẽ tưởng nhầm instance của tầng cha là instance cần tái sử dụng và ghi đè toàn bộ các biến cục bộ (<code>L$0, L$1</code>) của cha, dẫn đến lỗi State Corruption nghiêm trọng.</p>
+                  </div>
+                </section>
               </div>
             `
           },
