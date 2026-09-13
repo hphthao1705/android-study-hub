@@ -408,35 +408,191 @@ public final Object invokeSuspend(Object result) {
               </div>
             `
           },
-          {
+         {
             id: "coroutine-context",
             num: "03",
             badge: "Threading",
-            title: "Đại Số CoroutineContext & Quản Trị Luồng",
-            desc: "CombinedContext, Dispatchers.Main.immediate, Dispatchers.Unconfined, Mutex vs synchronized.",
+            title: "Đại Số CoroutineContext & Quản Trị Luồng Tầng Sâu",
+            desc: "Monoid Pattern, CombinedContext Tree, CoroutineScheduler, Work-Stealing, CPU_PERMIT & Starvation Prevention.",
             content: `
               <div class="space-y-8">
+                <!-- Header Module -->
                 <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
                   <div class="flex items-center gap-2 mb-3">
                     <span class="px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-xs font-mono font-bold">Chuyên Đề 03</span>
-                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Threading Core</span>
+                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Architecture & Threading</span>
                   </div>
                   <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Đại Số CoroutineContext & Quản Trị Luồng
+                    Đại Số CoroutineContext & Quản Trị Luồng (CoroutineScheduler)
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    CombinedContext, Dispatchers.Main.immediate, Dispatchers.Unconfined, Mutex vs synchronized.
+                    Mổ xẻ bản chất toán học của Context (Monoid, Keyed Set, CombinedContext Tree) và cơ chế chia sẻ thread pool ngầm giữa Dispatchers.Default & Dispatchers.IO qua thuật toán Work-Stealing.
                   </p>
                 </div>
 
-                <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed list-disc pl-5">
-                  <li><strong>1. Quy tắc cộng ngữ cảnh (Right-side Override):</strong> Cấu trúc <code>CombinedContext</code> áp dụng quy tắc ghi đè từ trái sang phải. Nếu hai vế cùng một <code>Key</code>, vế phải sẽ thay thế vế trái.<br/>
-                  Ví dụ: <code>Dispatchers.IO + CoroutineName("A") + Dispatchers.Default</code> &rarr; Dispatcher cuối cùng là <strong>Dispatchers.Default</strong>.</li>
-                  <li><strong>2. Dispatchers.Main.immediate vs Dispatchers.Main:</strong> <code>Dispatchers.Main</code> luôn đưa message vào hàng đợi <code>MessageQueue</code> của Android Looper. Trong khi đó, <code>.immediate</code> kiểm tra nếu luồng hiện tại đã là Main Thread, nó sẽ <strong>thực thi đồng bộ ngay lập tức</strong>, loại bỏ độ trễ phân phối và chống nháy giao diện.</li>
-                  <li><strong>3. Cơ chế của Dispatchers.Unconfined:</strong> Không ràng buộc vào bất kỳ Thread Pool nào: Chạy ngay trên luồng gọi cho đến điểm suspend đầu tiên; sau khi resume, tiếp tục chạy trên bất kỳ luồng nào đã kích hoạt <code>resumeWith</code>.</li>
-                  <li><strong>4. Mutex.withLock vs synchronized:</strong> Khối <code>synchronized</code> hoặc <code>ReentrantLock</code> sẽ <strong>chặn (block) OS Thread</strong> bên dưới. Trong Coroutines bắt buộc dùng <code>Mutex.withLock</code>: khi chưa lấy được lock, coroutine sẽ <strong>suspend</strong> nhường thread cho task khác.</li>
-                  <li><strong>5. ThreadLocal & .asContextElement():</strong> Dùng <code>myThreadLocal.asContextElement()</code> đưa vào Context để coroutine tự động sao chép giá trị sang mỗi thread mới khi chuyển thread.</li>
-                </ul>
+                <!-- 1. ĐẠI SỐ COROUTINECONTEXT -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-cyan-500/10 text-cyan-500 flex items-center justify-center text-xs font-bold">1</span>
+                    "Đại Số" CoroutineContext: Cấu Trúc Monoid & Keyed Set
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <code>CoroutineContext</code> không phải là một HashMap thông thường mà là một cấu trúc dữ liệu bất biến (immutable keyed set) tối ưu cho các phép cộng tập hợp. Về mặt toán học, nó tạo thành một <strong>Monoid</strong>:
+                  </p>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <span class="text-slate-400 block mb-1 font-bold">// 1. Phần tử đơn vị (Identity Element)</span>
+                      <span class="text-cyan-600 dark:text-cyan-400 font-bold">EmptyCoroutineContext</span>
+                      <p class="text-[11px] text-slate-500 mt-1 font-sans">A + EmptyCoroutineContext == A</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <span class="text-slate-400 block mb-1 font-bold">// 2. Phép toán hai ngôi (Binary Operation)</span>
+                      <span class="text-emerald-600 dark:text-emerald-400 font-bold">Toán tử + (plus)</span>
+                      <p class="text-[11px] text-slate-500 mt-1 font-sans">Bảo toàn tính kết hợp (Associative)</p>
+                    </div>
+                  </div>
+
+                  <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed list-disc pl-5">
+                    <li><strong>Các phần tử cốt lõi:</strong> Mỗi phần tử là một <code>Element</code> gắn với một <code>Key</code> định danh duy nhất: <code>Job</code> (vòng đời & phân cấp), <code>CoroutineDispatcher</code> (quản trị luồng), <code>CoroutineExceptionHandler</code> (bắt lỗi uncaught), <code>CoroutineName</code> (debug identifier).</li>
+                    <li><strong>Quy tắc Ghi đè bên phải (Right-side Override):</strong> Khi ghép <code>C = A + B</code>, nếu A và B cùng chung một <code>Key</code>, phần tử thuộc <strong>B sẽ thay thế phần tử của A</strong>.</li>
+                    <li><strong>Cấu trúc cây nhị phân lồng nhau (CombinedContext):</strong> Runtime không tốn bộ nhớ cấp phát hash table. Phép cộng tạo ra cấu trúc cây liên kết dạng <code>CombinedContext(left, element)</code>. Việc tra cứu <code>get(key)</code> hoặc loại bỏ <code>minusKey(key)</code> được thực thi bằng thuật toán duyệt đệ quy trên cây nhị phân này.</li>
+                  </ul>
+
+                  <div class="p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-300 space-y-1 overflow-x-auto custom-scroll">
+                    <div class="text-slate-500">// Minh họa toán tử cộng ghi đè:</div>
+                    <div>val ctx1 = Dispatchers.Main + Job()</div>
+                    <div>val ctx2 = Dispatchers.IO + CoroutineName("Worker")</div>
+                    <div class="text-emerald-400 font-bold mt-1">val finalCtx = ctx1 + ctx2</div>
+                    <div class="text-slate-400 text-[11px]">// &rarr; finalCtx gồm: Job ban đầu, CoroutineName("Worker"), và Dispatchers.IO (ghi đè Dispatchers.Main)</div>
+                  </div>
+                </section>
+
+                <!-- 2. QUẢN TRỊ LUỒNG & CONTINUATION INTERCEPTOR -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Quản Trị Luồng (ContinuationInterceptor & CoroutineScheduler)
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Mọi <code>CoroutineDispatcher</code> thực chất là một implementation của <code>ContinuationInterceptor</code>. Khi coroutine resume, nó không chạy tự do trên thread hiện tại mà bị đánh chặn:
+                  </p>
+
+                  <div class="p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-700 dark:text-slate-300">
+                    continuation.resumeWith() &rarr; Context tìm ContinuationInterceptor &rarr; Dispatcher đóng gói thành DispatchedContinuation &rarr; Gọi dispatcher.dispatch(context, block)
+                  </div>
+
+                  <!-- Bảng So Sánh Dispatchers -->
+                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th class="p-3">Dispatcher</th>
+                          <th class="p-3">Thread Pool Bên Dưới</th>
+                          <th class="p-3">Mục Đích Sử Dụng</th>
+                          <th class="p-3">Hạn Ngạch (Quota)</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-cyan-600 dark:text-cyan-400">Dispatchers.Default</td>
+                          <td class="p-3">Shared CoroutineScheduler Pool</td>
+                          <td class="p-3">Tính toán nặng CPU (Parse JSON, sorting, crypto)</td>
+                          <td class="p-3 font-mono">corePoolSize = max(2, CPU cores)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">Dispatchers.IO</td>
+                          <td class="p-3">Dùng chung CoroutineScheduler với Default</td>
+                          <td class="p-3">Chặn I/O (Retrofit, Room, đọc ghi Disk, Network)</td>
+                          <td class="p-3 font-mono">max(64, CPU cores)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">Dispatchers.Main</td>
+                          <td class="p-3">Android Main Looper / UI Thread</td>
+                          <td class="p-3">Thao tác View, MutableState, Collect Flow trên UI</td>
+                          <td class="p-3 font-mono">1 Thread duy nhất (Handler.post)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-purple-600 dark:text-purple-400">Dispatchers.Unconfined</td>
+                          <td class="p-3">Không cố định luồng nào</td>
+                          <td class="p-3">Chạy ngay trên caller thread tới điểm suspend đầu tiên</td>
+                          <td class="p-3 font-mono">Không kiểm soát (Testing/Micro-task)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <!-- 3. CHIA SẺ THREAD POOL BÊN DƯỚI -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Bản Chất Bên Dưới: CoroutineScheduler & Thuật Toán Work-Stealing
+                  </h3>
+                  <div class="p-4 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2 leading-relaxed">
+                    <p class="font-bold text-sky-700 dark:text-sky-300 text-sm">Cơ Chế Mượn/Trả Thread Qua Token CPU_PERMIT:</p>
+                    <p><code>Dispatchers.Default</code> và <code>Dispatchers.IO</code> không tạo ra 2 thread pool riêng biệt mà <strong>dùng chung một Worker Thread Pool duy nhất</strong> bên dưới thông qua bộ điều phối <code>CoroutineScheduler</code>:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                      <li><strong>Default (CPU tasks):</strong> Worker thread phải sở hữu token <code>CPU_PERMIT</code> và chuyển trạng thái sang <code>CPU_ACQUIRED</code>. Giới hạn cứng bằng đúng số CPU Cores để triệt tiêu chi phí Context Switching của CPU.</li>
+                      <li><strong>IO (Blocking tasks):</strong> Khi task I/O bắt đầu, worker giải phóng token <code>CPU_PERMIT</code> và chuyển sang trạng thái <code>BLOCKING</code>. <code>CoroutineScheduler</code> phát hiện thiếu hụt luồng CPU sẽ lập tức spawn hoặc đánh thức một worker thread khác bù vào để xử lý các task CPU của Default.</li>
+                      <li><strong>Thuật toán Work-Stealing:</strong> Mỗi worker thread có 1 Local Queue chứa tối đa 128 task và 1 Global Queue. Nếu một worker rảnh rỗi, nó sẽ "đánh cắp" 50% số task từ Local Queue của worker khác để cân bằng tải trên toàn hệ thống.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                <!-- 4. NGUY CƠ NGHẼN THREAD & PHÒNG NGỪA -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center text-xs font-bold">4</span>
+                    Cạm Bẫy Nghẽn Thread (Thread Starvation) & Cách Phòng Ngừa
+                  </h3>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div class="p-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-slate-700 dark:text-slate-300 space-y-1">
+                      <strong class="text-red-700 dark:text-red-400 font-bold block">1. Chạy Blocking Call trên Default:</strong>
+                      <p>Gọi <code>Thread.sleep()</code> hoặc <code>synchronized</code> trên Default sẽ phong tỏa toàn bộ $N$ thread CPU hiếm hoi. Khiến toàn bộ coroutine tính toán khác trong app bị tê liệt (starvation).</p>
+                    </div>
+                    <div class="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl text-slate-700 dark:text-slate-300 space-y-1">
+                      <strong class="text-amber-700 dark:text-amber-400 font-bold block">2. Cạn kiệt 64 Thread của IO Pool:</strong>
+                      <p>Nếu có 100 request I/O blocking bị treo cùng lúc, 64 thread sẽ bị chiếm trọn. Các tác vụ sau (kể cả đọc DB cục bộ nhẹ) buộc phải nằm chờ vô tận trong Global Queue.</p>
+                    </div>
+                  </div>
+
+                  <div class="p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-300 space-y-3">
+                    <div>
+                      <span class="text-slate-500 block">// GIẢI PHÁP: Khoanh vùng tài nguyên bằng limitedParallelism (Kotlin 1.6+)</span>
+                      <span class="text-purple-400">val</span> imageIoDispatcher = <span class="text-sky-400">Dispatchers.IO.limitedParallelism</span>(4)<br/>
+                      <span class="text-purple-400">val</span> databaseDispatcher = <span class="text-sky-400">Dispatchers.IO.limitedParallelism</span>(8)
+                    </div>
+                    <p class="text-[11px] text-slate-400 font-sans leading-relaxed">
+                      &bull; <code>limitedParallelism</code> trên IO tạo ra một view điều phối độc lập: Tác vụ tải ảnh dù có nghẽn mạng cũng chỉ được dùng tối đa 4 thread, bảo vệ hoàn toàn 60 thread còn lại cho Database và Network quan trọng.
+                    </p>
+                  </div>
+                </section>
+
+                <!-- 5. KẾ THỪA CONTEXT & BẪY STRUCTURED CONCURRENCY -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">5</span>
+                    Sự Kế Thừa Context & Cạm Bẫy Phá Vỡ Structured Concurrency
+                  </h3>
+                  <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2.5 leading-relaxed list-disc pl-5">
+                    <li>
+                      <strong>Công thức kế thừa:</strong> Khi coroutine con khởi tạo từ cha (<code>parentScope.launch(childContext)</code>):
+                      <br/><code class="font-mono text-xs text-purple-600 dark:text-purple-400 font-bold">NewContext = ParentContext + ChildContext</code>
+                      <br/>Các thuộc tính như <code>Dispatcher</code>, <code>ExceptionHandler</code>, <code>Name</code> tuân theo quy tắc ghi đè thông thường (con đè cha).
+                    </li>
+                    <li>
+                      <strong>Ngoại lệ sống còn của Job:</strong> Coroutine con <strong>luôn sinh ra một Job mới</strong> và thiết lập quan hệ cây phân cấp hai chiều với Job của cha:
+                      <br/>&bull; Cha bị Cancel &rarr; Con tự động bị Cancel theo.
+                      <br/>&bull; Con bị Uncaught Exception &rarr; Lan truyền hủy ngược lên cha (trừ khi dùng <code>SupervisorJob</code>).
+                    </li>
+                    <li>
+                      <strong class="text-red-600 dark:text-red-400">CẠM BẪY PHỎNG VẤN: Truyền Job() tường minh vào launch con</strong>
+                      <br/>Nếu viết <code>scope.launch(Job()) { ... }</code>, theo luật ghi đè, Job truyền vào sẽ <strong>cắt đứt hoàn toàn quan hệ với Job của Scope cha</strong>. Coroutine này biến thành một "kẻ mồ côi" (orphan): khi ViewModel bị clear hoặc Scope bị cancel, coroutine con này vẫn tiếp tục chạy ngầm, gây rò rỉ bộ nhớ (Memory Leak) nghiêm trọng!
+                    </li>
+                  </ul>
+                </section>
               </div>
             `
           },
