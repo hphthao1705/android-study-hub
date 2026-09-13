@@ -751,37 +751,211 @@ public final Object invokeSuspend(Object result) {
               </div>
             `
           },
-          {
+       {
             id: "channels-concurrency-select",
             num: "08",
             badge: "Concurrency",
             title: "Channels, Concurrency & Biểu Thức Select",
-            desc: "Channel.RENDEZVOUS, CONFLATED, Hủy Liên Đới Trong produce & select {}.",
+            desc: "Triết lý CSP, Buffer Types, Pipelines, Fan-in/Fan-out, Atomic Multiplexing và so sánh Channel vs Flow.",
             content: `
               <div class="space-y-8">
+                <!-- Header Module -->
                 <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
                   <div class="flex items-center gap-2 mb-3">
                     <span class="px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-xs font-mono font-bold">Chuyên Đề 08</span>
-                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Advanced Concurrency</span>
+                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">CSP Architecture</span>
                   </div>
                   <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                     Channels, Concurrency & Biểu Thức Select
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Channel.RENDEZVOUS, CONFLATED, Hủy Liên Đới Trong produce & select {}.
+                    Triển khai lý thuyết CSP (Communicating Sequential Processes) của C.A.R. Hoare: <em>"Không giao tiếp bằng cách chia sẻ bộ nhớ; thay vào đó, hãy chia sẻ bộ nhớ bằng cách giao tiếp."</em>
                   </p>
                 </div>
 
-                <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed list-disc pl-5">
-                  <li><strong>1. Channel.RENDEZVOUS (Buffer = 0):</strong> Cấu hình mặc định. Bên gửi <code>send()</code> bị suspend cho đến khi bên nhận gọi <code>receive()</code>, tạo thành cơ chế bắt tay trực tiếp (handshake) mà không lưu tạm dữ liệu trên RAM.</li>
-                  <li><strong>2. Channel.CONFLATED:</strong> Bộ đệm dung lượng đúng bằng 1. Bên gửi <code>send()</code> không bao giờ bị suspend; nếu bên nhận chưa kịp đọc, phần tử mới sẽ tự động ghi đè lên phần tử cũ trong bộ đệm.</li>
-                  <li><strong>3. Hủy liên đới trong builder produce { ... }:</strong> Khi Consumer gọi <code>channel.cancel()</code>, channel đóng lại. Coroutine Producer bên trong <code>produce</code> lập tức bị ném <code>CancellationException</code> ngay tại lần gọi <code>send()</code> tiếp theo.</li>
-                  <li><strong>4. Mệnh đề select { ... } (Select Expression):</strong> Cho phép chờ đồng thời nhiều tác vụ suspend/channel khác nhau và chọn thực thi mệnh đề của tác vụ nào hoàn thành đầu tiên, sau đó hủy hoặc bỏ qua các tác vụ còn lại.</li>
-                  <li><strong>5. Cạm bẫy của GlobalScope.launch:</strong> Gắn liền với vòng đời toàn bộ tiến trình ứng dụng (Application process), không thể tự hủy theo Activity/Fragment và gây rò rỉ bộ nhớ/tài nguyên nghiêm trọng.</li>
-                </ul>
+                <!-- 1. KÊNH TRUYỀN THÔNG ĐIỆP (CHANNELS) -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Channels (Kênh Truyền Thông Điệp) & Các Loại Buffer
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Channel là đường ống truyền dữ liệu bất đồng bộ (hot stream) giữa các coroutine. Không giống như collection thông thường, các thao tác <code>send()</code> và <code>receive()</code> có khả năng suspend mà không block OS thread.
+                  </p>
+
+                  <!-- Bảng Dung Lượng Buffer -->
+                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th class="p-3">Loại Channel</th>
+                          <th class="p-3">Dung Lượng Buffer</th>
+                          <th class="p-3">Hành Vi Khi Gọi send(element)</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">Channel.RENDEZVOUS</td>
+                          <td class="p-3 font-mono">0 phần tử (Mặc định)</td>
+                          <td class="p-3"><code>send()</code> bị suspend cho tới khi có một receiver gọi <code>receive()</code>. Hai coroutine "hẹn gặp" trực tiếp để trao tay dữ liệu (Handshake).</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-cyan-600 dark:text-cyan-400">Channel.BUFFERED</td>
+                          <td class="p-3 font-mono">Cố định (mặc định 64)</td>
+                          <td class="p-3"><code>send()</code> đẩy phần tử vào hàng đợi và chạy tiếp ngay lập tức. Chỉ suspend khi buffer bị đầy hoàn toàn.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-red-500">Channel.UNLIMITED</td>
+                          <td class="p-3 font-mono">Vô hạn (LinkedList)</td>
+                          <td class="p-3"><code>send()</code> không bao giờ suspend. Nguy cơ gây <code>OutOfMemoryError</code> nếu tốc độ Producer nhanh hơn Consumer trong thời gian dài.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">Channel.CONFLATED</td>
+                          <td class="p-3 font-mono">1 phần tử (Ghi đè)</td>
+                          <td class="p-3"><code>send()</code> không bao giờ suspend. Nếu receiver chưa kịp đọc, phần tử mới sẽ tự động ghi đè lên phần tử cũ (tương tự cơ chế của <code>StateFlow</code>).</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Đóng Kênh An Toàn -->
+                  <div class="p-4 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-2">
+                    <strong class="text-slate-900 dark:text-white font-bold block">Cơ Chế Đóng Kênh (Closing) & Hủy Liên Đới:</strong>
+                    <ul class="list-disc pl-5 space-y-1">
+                      <li><code>channel.close()</code>: Gửi một token lính gác thông báo dừng phát. Receiver sẽ đọc hết các phần tử còn sót lại trong buffer rồi tự động thoát vòng lặp <code>for (item in channel)</code> một cách an toàn.</li>
+                      <li>Nếu tiếp tục gọi <code>send()</code> trên kênh đã đóng, hệ thống ném ra <code>ClosedSendChannelException</code>.</li>
+                      <li><strong>Builder <code>produce { ... }</code>:</strong> Coroutine sản xuất gắn liền vòng đời với channel trả về. Khi Consumer gọi <code>channel.cancel()</code>, Producer lập tức nhận <code>CancellationException</code> và tự giải phóng tài nguyên.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                <!-- 2. MÔ HÌNH CONCURRENCY -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Các Mô Hình Concurrency Phổ Biến Với Channels
+                  </h3>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                      </span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Pipelines</h4>
+                      <p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Chuỗi xử lý dữ liệu: 1 coroutine tạo nguồn (produce), chuyển tiếp qua các channel trung gian để filter/map, và coroutine cuối cùng tiêu thụ kết quả.
+                      </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-diagram-project"></i>
+                      </span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Fan-out (1 &rarr; N)</h4>
+                      <p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                        1 Producer đẩy task vào 1 Channel, nhiều Worker Coroutine cùng lắng nghe để chia nhau xử lý song song. Mỗi task chỉ được nhận bởi đúng 1 Worker.
+                      </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-compress"></i>
+                      </span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Fan-in (N &rarr; 1)</h4>
+                      <p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Nhiều Coroutine con cùng đẩy kết quả vào 1 Channel tập trung duy nhất để 1 Consumer xử lý tuần tự (tránh Race Condition mà không cần Lock).
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 3. BIỂU THỨC SELECT -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-cyan-500/10 text-cyan-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Biểu Thức select (Multiplexing & Atomic Selection)
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Biểu thức <code>select</code> cho phép coroutine chờ đồng thời nhiều sự kiện tạm dừng (suspending operations) và <strong>chỉ thực thi mệnh đề của sự kiện nào sẵn sàng đầu tiên</strong>. Quá trình chọn là nguyên tử (Atomic) — các mệnh đề không được chọn sẽ tự động bị bỏ qua hoặc hủy đăng ký.
+                  </p>
+
+                  <div class="p-4 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 font-mono text-xs">
+                    <div class="text-slate-400 mb-2">// Ví dụ: Đua dữ liệu giữa 2 Channels hoặc ngắt bằng Timeout</div>
+                    <pre class="overflow-x-auto custom-scroll text-slate-200 leading-relaxed"><code>suspend fun raceChannels(
+    ch1: ReceiveChannel&lt;String&gt;, 
+    ch2: ReceiveChannel&lt;String&gt;
+): String {
+    return select {
+        // Mệnh đề 1: ch1 có dữ liệu trước
+        ch1.onReceive { value ->
+            "Channel 1 thắng: \\$value"
+        }
+
+        // Mệnh đề 2: ch2 có dữ liệu trước
+        ch2.onReceive { value ->
+            "Channel 2 thắng: \\$value"
+        }
+
+        // Mệnh đề 3: Quá thời gian quy định
+        onTimeout(500) {
+            "Timeout: Không có channel nào phản hồi kịp"
+        }
+    }
+}</code></pre>
+                  </div>
+
+                  <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed list-disc pl-5">
+                    <li><code>onReceive / onReceiveCatching</code>: Lắng nghe kênh có dữ liệu để đọc.</li>
+                    <li><code>onSend</code>: Đẩy dữ liệu ngay khi buffer của kênh có khoảng trống.</li>
+                    <li><code>onAwait</code>: Lắng nghe kết quả từ một <code>Deferred&lt;T&gt;</code> (sinh ra từ <code>async</code>).</li>
+                    <li><code>onTimeout</code>: Hủy bỏ việc chờ nếu quá khoảng thời gian định trước.</li>
+                  </ul>
+                </section>
+
+                <!-- 4. SO SÁNH CHANNEL VS FLOW -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-bold">4</span>
+                    So Sánh Toàn Diện: Channel vs SharedFlow / StateFlow
+                  </h3>
+
+                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th class="p-3">Tiêu Chí</th>
+                          <th class="p-3">Channel</th>
+                          <th class="p-3">StateFlow / SharedFlow</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                        <tr>
+                          <td class="p-3 font-bold text-slate-900 dark:text-white">Mô Hình Giao Tiếp</td>
+                          <td class="p-3 font-semibold text-indigo-600 dark:text-indigo-400">Unicast (1 - 1)</td>
+                          <td class="p-3 font-semibold text-sky-600 dark:text-sky-400">Multicast / Broadcast (1 - N)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-slate-900 dark:text-white">Tiêu Thụ Dữ Liệu</td>
+                          <td class="p-3">Mỗi phần tử chỉ được tiêu thụ bởi <strong>1 receiver duy nhất</strong>. Nếu có nhiều receiver, chúng chia nhau đọc.</td>
+                          <td class="p-3">Mọi collector đang active đều nhận được bản sao của dữ liệu được phát ra.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-slate-900 dark:text-white">Mục Đích Sử Dụng</td>
+                          <td class="p-3">Quản lý hàng đợi tác vụ (Job queue), phân phối công việc, Single-Event xử lý 1 lần duy nhất.</td>
+                          <td class="p-3">Quản lý UI State (<code>StateFlow</code>), phát sóng sự kiện trạng thái toàn app (<code>SharedFlow</code>).</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-slate-900 dark:text-white">Cơ Chế Backpressure</td>
+                          <td class="p-3"><code>send()</code> trực tiếp suspend khi buffer đầy, tự động điều tiết tốc độ phát.</td>
+                          <td class="p-3">Cấu hình linh hoạt qua <code>BufferOverflow</code> (<code>SUSPEND</code>, <code>DROP_OLDEST</code>, <code>DROP_LATEST</code>).</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               </div>
             `
-          }
+          },
         ]
       },
       {
