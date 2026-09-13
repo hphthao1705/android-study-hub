@@ -636,39 +636,187 @@ public final Object invokeSuspend(Object result) {
           {
             id: "exception-transparency",
             num: "05",
-            badge: "Exception",
+            badge: "Exception Rules",
             title: "Exception Transparency (Minh Bạch Ngoại Lệ)",
-            desc: "Thảm họa nuốt lỗi hạ lưu khi try-catch quanh emit, ranh giới bất biến của toán tử .catch.",
+            desc: "Flow Invariant, SafeCollector under-the-hood, thảm họa nuốt lỗi hạ lưu & ranh giới bất biến của toán tử .catch.",
             content: `
               <div class="space-y-8">
+                <!-- Header Module -->
                 <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
                   <div class="flex items-center gap-2 mb-3">
                     <span class="px-2.5 py-1 rounded-md bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20 text-xs font-mono font-bold">Chuyên Đề 05</span>
-                    <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">Error Handling</span>
+                    <span class="px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-mono font-bold">Architecture Safety</span>
                   </div>
                   <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                     Exception Transparency (Minh Bạch Ngoại Lệ)
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Bản chất emit(), Thảm họa nuốt chửng lỗi hạ lưu & Ranh giới toán tử .catch.
+                    Nguyên tắc bất biến cốt tử trong Reactive Flow: <em>Một Flow không bao giờ được phép bắt hoặc nuốt ngoại lệ xảy ra ở downstream (phía người tiêu thụ dữ liệu/collector) một cách âm thầm.</em> Ngoại lệ phát sinh từ downstream luôn phải được ném thẳng về phía nơi gọi collect.
                   </p>
                 </div>
 
-                <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed list-disc pl-5">
-                  <li><strong>1. Thảm họa bọc try-catch quanh emit():</strong> Lời gọi <code>emit(data)</code> thực chất gọi trực tiếp khối lệnh bên trong <code>collect { ... }</code>. Nếu UI Composable gặp lỗi truy cập mảng rỗng (<code>IndexOutOfBoundsException</code>), lỗi này sẽ văng ngược lại khối try-catch tại Repository!<br/>
-                  &rarr; <strong>Hậu quả:</strong> Repository bắt nhầm và ghi log "Lỗi mạng", nuốt chửng lỗi UI biến thành lỗi âm thầm (silent bug) cực kỳ khó debug.</li>
-                  <li><strong>2. Cách viết chuẩn tại Repository:</strong> Chỉ bọc try-catch cho phần sinh dữ liệu, tuyệt đối không bọc <code>emit()</code>:
-                    <div class="p-3 bg-slate-900 rounded-lg font-mono text-xs text-emerald-400 my-1">
-                      val res = try { api.getUser() } catch(e: IOException) { null }<br/>
-                      if (res != null) emit(res) // NẰM NGOÀI TRY-CATCH
+                <!-- 1. VẤN ĐỀ VI PHẠM MINH BẠCH NGOẠI LỆ -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-pink-500/10 text-pink-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Vấn Đề Vi Phạm Minh Bạch Ngoại Lệ
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Xét trường hợp nếu Flow builder cố tình dùng khối <code>try-catch</code> bọc quanh lệnh <code>emit()</code>:
+                  </p>
+
+                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
+                    <div class="bg-slate-950 px-4 py-2 text-[11px] text-red-400 border-b border-slate-800 flex justify-between items-center">
+                      <span>Mã Nguồn Vi Phạm Kiến Trúc (Anti-pattern)</span>
+                      <span>Violation Example</span>
                     </div>
-                  </li>
-                  <li><strong>3. Ranh giới bất biến của .catch:</strong> Toán tử <code>.catch { e -> ... }</code> <strong>CHỈ BẮT ĐƯỢC NGOẠI LỆ TỪ UPSTREAM</strong>. Nếu ngoại lệ phát sinh bên trong khối <code>collect { }</code> phía sau nó, <code>.catch</code> hoàn toàn không can thiệp mà văng thẳng ra ngoài.</li>
-                </ul>
+                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>// VI PHẠM NGUYÊN TẮC EXCEPTION TRANSPARENCY
+fun &lt;T&gt; brokenFlow(block: suspend () -&gt; T) = flow {
+    try {
+        emit(block()) // Lời gọi trực tiếp vào khối collect của Downstream
+    } catch (e: Throwable) {
+        // Cố tình nuốt lỗi hoặc phát ra giá trị mặc định khi có ngoại lệ
+        println("Đã bắt lỗi: \\$e")
+    }
+}
+
+// Khi Consumer tiêu thụ:
+brokenFlow { "Dữ liệu hợp lệ" }
+    .collect { data ->
+        // Lỗi xảy ra tại code UI hoặc business logic của Downstream
+        throw IllegalStateException("Lỗi render View UI!")
+    }</code></pre>
+                  </div>
+
+                  <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-1.5 leading-relaxed">
+                    <strong class="text-red-700 dark:text-red-400 font-bold block text-sm">Hậu Quả Tiêu Cực (Silent Bug & Phá Vỡ Structured Concurrency):</strong>
+                    <p>Lệnh <code>emit()</code> bản chất là gọi trực tiếp khối <code>collect</code> trên cùng call stack. Khi UI ném ra <code>IllegalStateException</code>, khối <code>try-catch</code> ở Repository vô tình nuốt chửng lỗi này và tưởng rằng đó là "Lỗi mạng".</p>
+                    <p>Hậu quả là UI crash âm thầm, luồng dữ liệu tiếp tục chạy trong trạng thái không đồng nhất (inconsistent state), gây cực kỳ khó khăn khi debug và phá vỡ cơ chế hủy lan truyền của coroutine cha-con.</p>
+                  </div>
+                </section>
+
+                <!-- 2. CÁCH KOTLIN FLOW BẢO VỆ QUA SAFECOLLECTOR -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Cơ Chế Thực Thi Của SafeCollector Under-the-hood
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Để ngăn ngừa việc cố tình nuốt lỗi downstream, Kotlin runtime bọc mọi khối <code>flow { }</code> trong một lớp nội bộ có tên là <strong>SafeCollector</strong>:
+                  </p>
+
+                  <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed list-disc pl-5">
+                    <li><strong>Lưu vết Context:</strong> SafeCollector ghi nhớ context ban đầu của collector (bao gồm cả trạng thái xử lý lỗi).</li>
+                    <li><strong>Từ chối nuốt lỗi:</strong> Nếu downstream ném lỗi, SafeCollector bắt buộc ném ngược trở lại mà không cho phép catch block của upstream can thiệp.</li>
+                    <li><strong>Bắt quả tang khi emit lại trong catch:</strong> Nếu bạn cố tình bắt lỗi quanh <code>emit()</code> và tiếp tục gọi một lệnh <code>emit()</code> khác trong khối catch, SafeCollector phát hiện sự bất thường và ném crash hệ thống ngay lập tức:</li>
+                  </ul>
+
+                  <div class="p-3.5 bg-slate-900 text-rose-400 font-mono text-xs rounded-xl border border-slate-800">
+                    IllegalStateException: Exception transparency has been violated:<br/>
+                    Flow exception transparency must be preserved.
+                  </div>
+                </section>
+
+                <!-- 3. QUY CHUẨN XỬ LÝ LỖI ĐÚNG CÁCH -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Quy Chuẩn Xử Lý Ngoại Lệ Đúng Cách
+                  </h3>
+
+                  <!-- a. catch cho upstream -->
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <h4 class="font-bold text-sm text-emerald-600 dark:text-emerald-400">a. Dùng toán tử .catch {} cho Upstream</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Toán tử <code>.catch</code> <strong>CHỈ BẮT NGOẠI LỆ TỪ PHÍA TRÊN NÓ</strong> (upstream), hoàn toàn không chạm vào hạ lưu:
+                    </p>
+                    <pre class="p-3 bg-slate-950 text-slate-200 font-mono text-xs rounded-lg overflow-x-auto custom-scroll"><code>repository.fetchUsers() // upstream
+    .map { parseUsers(it) } // upstream
+    .catch { throwable ->
+        // Chỉ bắt lỗi từ fetchUsers() hoặc parseUsers()
+        emit(emptyList()) // Phát giá trị dự phòng
+    }
+    .collect { users ->
+        // Downstream: Nếu ở đây ném lỗi, .catch PHÍA TRÊN SẼ KHÔNG BẮT!
+        renderUI(users)
+    }</code></pre>
+                  </div>
+
+                  <!-- b. try-catch tại collector -->
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <h4 class="font-bold text-sm text-sky-600 dark:text-sky-400">b. Xử lý lỗi Downstream ngay tại Collector</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Nếu muốn xử lý lỗi phát sinh trong quá trình tiêu thụ dữ liệu, hãy bọc toàn bộ lời gọi <code>collect</code> bằng khối try-catch thông thường:
+                    </p>
+                    <pre class="p-3 bg-slate-950 text-slate-200 font-mono text-xs rounded-lg overflow-x-auto custom-scroll"><code>try {
+    repository.fetchUsers()
+        .catch { emit(emptyList()) }
+        .collect { users ->
+            renderUI(users) // Lỗi ở đây được bắt an toàn tại catch bên dưới
+        }
+} catch (e: Exception) {
+    showErrorDialog(e)
+}</code></pre>
+                  </div>
+
+                  <!-- c. onEach + catch + launchIn -->
+                  <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <h4 class="font-bold text-sm text-purple-600 dark:text-purple-400">c. Dùng onEach kết hợp .catch để gom cụm xử lý</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Để gom toàn bộ logic xử lý lỗi vào một chuỗi pipeline duy nhất, chuyển logic downstream vào trước toán tử <code>.catch</code>:
+                    </p>
+                    <pre class="p-3 bg-slate-950 text-slate-200 font-mono text-xs rounded-lg overflow-x-auto custom-scroll"><code>repository.fetchUsers()
+    .onEach { users ->
+        renderUI(users) // Chuyển logic downstream vào onEach (đứng TRƯỚC catch)
+    }
+    .catch { throwable ->
+        // Bắt được cả lỗi từ fetchUsers lẫn renderUI
+        handleError(throwable)
+    }
+    .launchIn(viewModelScope) // collect an toàn trong scope chỉ định</code></pre>
+                  </div>
+                </section>
+
+                <!-- 4. BẢNG TỔNG KẾT SO SÁNH -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-bold">4</span>
+                    Bảng Tóm Tắt Cơ Chế Bảo Toàn Minh Bạch Ngoại Lệ
+                  </h3>
+
+                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th class="p-3">Cơ Chế</th>
+                          <th class="p-3">Phạm Vi Bắt Lỗi</th>
+                          <th class="p-3">Tính Chất Minh Bạch</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-red-500">try-catch quanh emit()</td>
+                          <td class="p-3">Bắt cả lỗi upstream lẫn downstream</td>
+                          <td class="p-3 font-bold text-red-600 dark:text-red-400">Vi phạm nghiêm trọng (Bị chặn bởi SafeCollector)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">Toán tử .catch { }</td>
+                          <td class="p-3">Chỉ bắt Upstream (code đứng trước nó)</td>
+                          <td class="p-3 font-bold text-emerald-600 dark:text-emerald-400">Chuẩn mực (Bảo toàn hoàn toàn lỗi downstream)</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-mono font-bold text-sky-600 dark:text-sky-400">try-catch quanh .collect { }</td>
+                          <td class="p-3">Bắt mọi lỗi xảy ra trong toàn chuỗi Flow</td>
+                          <td class="p-3 font-bold text-sky-600 dark:text-sky-400">Chuẩn mực (Consumer tự chịu trách nhiệm về lỗi của mình)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               </div>
             `
           },
-        {
+          {
             id: "flow-advanced-backpressure",
             num: "06",
             badge: "Reactive Flow",
