@@ -668,44 +668,214 @@ public final Object invokeSuspend(Object result) {
               </div>
             `
           },
-          {
+        {
             id: "flow-advanced-backpressure",
             num: "06",
             badge: "Reactive Flow",
             title: "Flow Nâng Cao: Backpressure & Operators",
-            desc: "conflate vs collectLatest, debounce vs sample, channelFlow, callbackFlow & Ring Buffer.",
+            desc: "Bản chất Backpressure qua suspend, Buffer Overflow, Flattening (Concat/Merge/Latest), Throttling & Context Preservation.",
             content: `
               <div class="space-y-8">
+                <!-- Header Module -->
                 <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
                   <div class="flex items-center gap-2 mb-3">
                     <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">Chuyên Đề 06</span>
-                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Backpressure</span>
+                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Reactive Architecture</span>
                   </div>
                   <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Flow Nâng Cao: Backpressure & Operators
+                    Kotlin Flow Nâng Cao: Backpressure & Operators
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    conflate vs collectLatest, debounce vs sample, channelFlow, callbackFlow & Ring Buffer.
+                    Xử lý bất đối xứng tốc độ giữa Emitter và Collector: Bản chất Backpressure tự nhiên qua cơ chế suspend, phân loại Flattening/Throttling operators và quy tắc bất biến Context Preservation.
                   </p>
                 </div>
 
-                <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed list-disc pl-5">
-                  <li><strong>1. Backpressure: conflate() vs collectLatest { }:</strong>
-                    <br/>• <code>conflate()</code>: Xử lý ở <strong>tầng phát (Buffer)</strong>. Nếu collector bận, buffer dung lượng 1 của conflate sẽ drop các phần tử trung gian và chỉ giữ lại phần tử mới nhất.
-                    <br/>• <code>collectLatest()</code>: Xử lý ở <strong>tầng nhận (Downstream)</strong>. Collector vẫn nhận dữ liệu, nhưng nếu có giá trị mới phát ra trong lúc giá trị cũ đang xử lý dở, nó sẽ <strong>hủy (cancel) coroutine cũ</strong> để chạy coroutine mới.
-                  </li>
-                  <li><strong>2. .debounce(timeout) vs .sample(period):</strong>
-                    <br/>• <code>.debounce</code>: Chỉ phát khi upstream <strong>ngừng phát và giữ im lặng</strong> trong đủ khoảng thời gian.
-                    <br/>• <code>.sample</code>: Chụp mẫu định kỳ: cứ sau chu kỳ cố định (1000ms), lấy giá trị mới nhất trong chu kỳ đó phát xuống.
-                  </li>
-                  <li><strong>3. channelFlow vs flow:</strong> Bắt buộc dùng <code>channelFlow { }</code> khi cần phát dữ liệu (<code>send()</code>) <strong>đồng thời từ nhiều coroutine con song song</strong> hoặc từ callback đa luồng.</li>
-                  <li><strong>4. Cạm bẫy của callbackFlow & awaitClose:</strong> Nếu quên gọi <code>awaitClose { ... }</code> ở cuối khối, builder chạy hết code sẽ <strong>đóng channel ngay lập tức</strong>, khiến các sự kiện callback sau đó bị drop hoặc crash app!</li>
-                  <li><strong>5. Ring Buffer trong SharedFlow:</strong> <code>SharedFlow</code> duy trì <strong>duy nhất 1 mảng bộ đệm vòng (Ring Buffer)</strong> trên Heap, mỗi collector giữ một con trỏ chỉ số slot riêng biệt để đọc mà không tốn dung lượng sao chép mảng.</li>
-                </ul>
+                <!-- 1. BẢN CHẤT BACKPRESSURE -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Bản Chất Của Backpressure Trong Cold Flow
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Khác với RxJava (vốn cần các interface chuyên biệt như <code>Flowable</code> hay chiến lược backpressure thủ công), Cold Flow trong Kotlin giải quyết Backpressure tự nhiên thông qua <strong>cơ chế suspend</strong>. Theo mặc định, Flow chạy hoàn toàn tuần tự (sequential) trên cùng một coroutine:
+                  </p>
+
+                  <div class="p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-300 space-y-1 overflow-x-auto custom-scroll">
+                    <div>flow {</div>
+                    <div>&nbsp;&nbsp;emit(1) <span class="text-slate-500">// Suspend cho đến khi block collect bên dưới xử lý xong</span></div>
+                    <div>&nbsp;&nbsp;emit(2)</div>
+                    <div>}.collect { value -></div>
+                    <div>&nbsp;&nbsp;delay(1000) <span class="text-slate-500">// Xử lý chậm</span></div>
+                    <div>}</div>
+                  </div>
+
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Hàm <code>emit()</code> bản chất là một <strong>suspend fun</strong>. Nếu Downstream Consumer đang bận xử lý (bị suspend), Upstream Producer sẽ tự động bị suspend ngay tại lệnh <code>emit()</code>, không đẩy thêm phần tử mới cho đến khi collector sẵn sàng.
+                  </p>
+                </section>
+
+                <!-- 2. CÁC CHIẾN LƯỢC XỬ LÝ KHI TÁCH BIỆT CONCURRENCY -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Các Chiến Lược Xử Lý Backpressure Khi Tách Biệt Concurrency
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Khi Producer và Consumer chạy trên 2 context hoặc thread khác nhau (nhờ <code>flowOn</code> hoặc khi Consumer xử lý quá chậm), pipeline tuần tự bị phá vỡ. Lúc này cần áp dụng 3 chiến lược:
+                  </p>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <!-- Buffer -->
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400">a. buffer()</span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Đệm Dữ Liệu</h4>
+                      <p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Tách Emitter và Collector sang 2 coroutine độc lập nối qua Channel ngầm định:
+                      </p>
+                      <ul class="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-300 text-[11px]">
+                        <li><code>SUSPEND</code>: Tạm dừng producer khi đầy đệm.</li>
+                        <li><code>DROP_OLDEST</code>: Xóa phần tử cũ nhất trong đệm.</li>
+                        <li><code>DROP_LATEST</code>: Bỏ qua phần tử mới nhất vừa phát.</li>
+                      </ul>
+                    </div>
+
+                    <!-- Conflate -->
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400">b. conflate()</span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Gộp Giá Trị Mới Nhất</h4>
+                      <p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Tương đương với <code>buffer(1, DROP_OLDEST)</code>. Mọi giá trị trung gian phát ra trong lúc collector đang bận đều bị drop.
+                      </p>
+                      <div class="p-2 bg-slate-100 dark:bg-slate-950 rounded font-mono text-[10px] text-teal-600 dark:text-teal-400">
+                        downloadFlow.conflate().collect { ... }
+                      </div>
+                    </div>
+
+                    <!-- CollectLatest -->
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">c. collectLatest { }</span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Hủy Xử Lý Cũ</h4>
+                      <p class="text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Không drop dữ liệu ở producer mà can thiệp ở collector: nếu có phần tử mới tới trong lúc phần tử cũ đang chạy, coroutine cũ lập tức bị <strong>cancel</strong>.
+                      </p>
+                      <div class="p-2 bg-slate-100 dark:bg-slate-950 rounded font-mono text-[10px] text-purple-600 dark:text-purple-400">
+                        queryFlow.collectLatest { api.search(it) }
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 3. PHÂN LOẠI OPERATORS NÂNG CAO -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Hệ Thống Toán Tử Nâng Cao (Advanced Operators)
+                  </h3>
+
+                  <!-- Nhóm Flattening -->
+                  <div class="space-y-2">
+                    <h4 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <i class="fa-solid fa-layer-group text-xs text-teal-500"></i>
+                      Nhóm Flattening (flatMapConcat, flatMapMerge, flatMapLatest)
+                    </h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      Dùng khi mỗi phần tử từ flow gốc kích hoạt tạo ra một flow con khác (ví dụ: <code>userId &rarr; Flow&lt;UserDetails&gt;</code>).
+                    </p>
+                    <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                      <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                          <tr>
+                            <th class="p-3">Operator</th>
+                            <th class="p-3">Cơ Chế Thực Thi</th>
+                            <th class="p-3">Ứng Dụng Thực Tế</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                          <tr>
+                            <td class="p-3 font-mono font-bold text-teal-600 dark:text-teal-400">flatMapConcat</td>
+                            <td class="p-3">Tuần tự nghiêm ngặt. Chờ flow con hiện tại kết thúc 100% mới bắt đầu collect flow con kế tiếp.</td>
+                            <td class="p-3">Đồng bộ dữ liệu tuần tự, Database transaction liên hoàn.</td>
+                          </tr>
+                          <tr>
+                            <td class="p-3 font-mono font-bold text-sky-600 dark:text-sky-400">flatMapMerge</td>
+                            <td class="p-3">Xử lý song song đồng thời nhiều flow con (tham số concurrency mặc định = 16).</td>
+                            <td class="p-3">Tải dữ liệu độc lập hàng loạt (Batch requests song song).</td>
+                          </tr>
+                          <tr>
+                            <td class="p-3 font-mono font-bold text-purple-600 dark:text-purple-400">flatMapLatest</td>
+                            <td class="p-3">Hủy bỏ (cancel) flow con trước đó ngay khi flow cha phát ra phần tử mới.</td>
+                            <td class="p-3">Search Autocomplete, chuyển Tab, thanh lọc query người dùng.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Nhóm Giảm Tần Suất & Kết Hợp -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                      <h4 class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge-high text-amber-500"></i> Giảm Tần Suất (Throttling)
+                      </h4>
+                      <ul class="space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <li><strong>debounce(timeout):</strong> Chỉ phát khi upstream giữ im lặng đủ khoảng thời gian (ô tìm kiếm gõ chữ).</li>
+                        <li><strong>sample(period):</strong> Chụp mẫu định kỳ: cứ sau mỗi chu kỳ cố định (ví dụ 1 giây), phát ra giá trị mới nhất trong chu kỳ đó (sensor, tracking tọa độ).</li>
+                      </ul>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                      <h4 class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-code-merge text-indigo-500"></i> Kết Hợp Luồng (Combining)
+                      </h4>
+                      <ul class="space-y-1.5 text-slate-600 dark:text-slate-300">
+                        <li><strong>combine(flowA, flowB):</strong> Kích hoạt bất cứ khi nào 1 trong 2 flow có giá trị mới (tái sử dụng giá trị gần nhất của flow kia). Ví dụ: ghép <code>username + password</code> để tính <code>isLoginButtonEnabled</code>.</li>
+                        <li><strong>zip(flowA, flowB):</strong> Ghép cặp 1-1 theo thứ tự phát. Cặp phần tử thứ $n$ của A chỉ emit khi cặp thứ $n$ của B xuất hiện.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 4. QUY TẮC CONTEXT PRESERVATION & FLOWON -->
+                <section class="space-y-4">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-pink-500/10 text-pink-500 flex items-center justify-center text-xs font-bold">4</span>
+                    Quy Tắc Context Preservation & Toán Tử flowOn
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Một trong những bất biến kiến trúc quan trọng nhất của Flow: <strong>Upstream không bao giờ được phép tự ý thay đổi CoroutineContext của Downstream</strong>.
+                  </p>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+                    <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl space-y-1.5 text-red-700 dark:text-red-300">
+                      <strong class="block font-sans font-bold">// SAI: Vi phạm Flow Invariant</strong>
+                      <div>fun fetchUsers() = flow {</div>
+                      <div>&nbsp;&nbsp;<span class="line-through">withContext(Dispatchers.IO)</span> {</div>
+                      <div>&nbsp;&nbsp;&nbsp;&nbsp;emit(api.getUsers()) <span class="text-red-500 font-bold">// CRASH!</span></div>
+                      <div>&nbsp;&nbsp;}</div>
+                      <div>}</div>
+                      <p class="font-sans text-[11px] text-red-600 dark:text-red-400 mt-1">Ném IllegalStateException: Flow invariant is violated.</p>
+                    </div>
+
+                    <div class="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl space-y-1.5 text-emerald-700 dark:text-emerald-300">
+                      <strong class="block font-sans font-bold">// ĐÚNG: Sử dụng toán tử .flowOn()</strong>
+                      <div>fun fetchUsers() = flow {</div>
+                      <div>&nbsp;&nbsp;emit(api.getUsers())</div>
+                      <div>}</div>
+                      <div class="text-sky-600 dark:text-sky-400 font-bold">.flowOn(Dispatchers.IO)</div>
+                      <div>.map { it.toUiModel() }</div>
+                      <p class="font-sans text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">flowOn chỉ đổi context cho upstream liền kề trước nó.</p>
+                    </div>
+                  </div>
+
+                  <div class="p-4 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1.5 leading-relaxed">
+                    <strong class="text-slate-900 dark:text-white font-bold block">Cơ Chế Bên Dưới Của flowOn:</strong>
+                    <p><code>flowOn</code> hoạt động bằng cách tạo ra một <strong>Channel trung gian</strong> giữa Upstream (chạy trên context chỉ định) và Downstream (chạy trên context nơi gọi collect). Channel này tự động xử lý việc chuyển thread mà không làm phá vỡ tính toàn vẹn của State Machine và Call Stack.</p>
+                  </div>
+                </section>
               </div>
             `
           },
-        {
+          {
             id: "compose-lifecycle-collection",
             num: "07",
             badge: "Compose Lifecycle",
