@@ -140,8 +140,9 @@
 
   </div>
 
+  <!-- 1. KHỞI TẠO DANH SÁCH KHÓA HỌC BAN ĐẦU -->
   <script>
-    const coursesRepository = [
+    window.coursesRepository = [
       {
         id: "coroutines-flow-core",
         title: "Coroutines & Flow Core Mechanics",
@@ -897,37 +898,6 @@ public final Object invokeSuspend(Object result) {
         ]
       },
       {
-        id: "room-database-deepdive",
-        title: "Room Database Deep-dive & TypeConverters",
-        category: "Local Storage",
-        icon: "fa-database",
-        color: "from-amber-500 to-rose-600",
-        badge: "Storage",
-        description: "Room annotation processing (KSP), SQLite threading, InvalidationTracker table-trigger, Transaction isolation, Custom TypeConverters & Migration test.",
-        lessons: [
-          {
-            id: "room-ksp-invalidation",
-            num: "01",
-            badge: "Architecture",
-            title: "Room Under-the-hood: KSP Generation & InvalidationTracker",
-            desc: "Cách Room tự sinh mã DAO_Impl và cơ chế SQLite TEMP TRIGGER của InvalidationTracker.",
-            content: `
-              <div class="space-y-6">
-                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
-                  <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">Chuyên Đề 01</span>
-                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-3">Room Under-the-hood: KSP Generation & InvalidationTracker</h2>
-                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2">Bản chất cơ chế quan sát thay đổi dữ liệu của Room Flow.</p>
-                </div>
-                <div class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-3">
-                  <p><strong>1. InvalidationTracker:</strong> Room tạo ra các SQLite TEMP TRIGGER trên các bảng được quan sát. Khi có bất kỳ lệnh INSERT/UPDATE/DELETE nào, SQLite tự đánh dấu bit trong bảng phụ <code>room_table_modification_tracker</code>.</p>
-                  <p><strong>2. Threading trong Room:</strong> Mọi truy vấn trả về Flow/LiveData đều được chuyển qua Thread Pool riêng của Room (Architecture Components IO Pool) trước khi emit kết quả.</p>
-                </div>
-              </div>
-            `
-          }
-        ]
-      },
-      {
         id: "flow-operators-sharing",
         title: "Flow Operators & SharingStarted Patterns",
         category: "Reactive",
@@ -1075,7 +1045,14 @@ public final Object invokeSuspend(Object result) {
         ]
       }
     ];
+  </script>
 
+  <!-- 2. NHÚNG CÁC MODULE KHÓA HỌC TÁCH RỜI (FILE ROOM SẼ PUSH 3 BÀI VÀO MẢNG) -->
+  <script src="js/courses/room-database.js"></script>
+
+  <!-- 3. CONTROLLER & RENDER LOGIC -->
+  <script>
+    const coursesRepository = window.coursesRepository;
     let currentCourseId = "coroutines-flow-core";
     let currentLessonId = "cps-decompile-jit";
     let searchQuery = "";
