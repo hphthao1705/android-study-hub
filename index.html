@@ -985,8 +985,14 @@ public final Object invokeSuspend(Object result) {
       const course = coursesRepository.find(c => c.id === currentCourseId);
       const lesson = course ? course.lessons.find(l => l.id === lessonId) : null;
       const main = document.getElementById("article-container");
+  
       if (main && lesson) {
         main.innerHTML = lesson.content;
+
+        // Cuộn khung đọc nội dung lên đầu trang
+        if (main.parentElement) {
+          main.parentElement.scrollTo({ top: 0, behavior: "smooth" });
+        }
       }
     }
 
