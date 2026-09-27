@@ -42,6 +42,9 @@
     .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
     .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
   </style>
+
+  <!-- Import các module khóa học bên ngoài -->
+  <script src="js/courses/hls-streaming.js"></script>
 </head>
 <body class="h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#0b0f19] dark:text-slate-100 antialiased overflow-hidden selection:bg-emerald-500 selection:text-white">
 
@@ -100,7 +103,7 @@
             type="text" 
             id="course-search-input" 
             oninput="handleSearch(this.value)"
-            placeholder="Tìm kiếm khóa học hoặc bài học (ví dụ: Coroutine, Room, Compose, Canvas...)" 
+            placeholder="Tìm kiếm khóa học hoặc bài học (ví dụ: Coroutine, HLS, Room, Compose, Canvas...)" 
             class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-emerald-500 text-xs sm:text-sm text-slate-900 dark:text-white shadow-sm placeholder:text-slate-400 transition"
           />
         </div>
@@ -141,7 +144,11 @@
   </div>
 
   <script>
-    const coursesRepository = [
+    // 1. Khởi tạo mảng toàn cục nếu chưa có từ các file js nạp trước
+    window.coursesRepository = window.coursesRepository || [];
+
+    // 2. Nạp các khóa học có sẵn trong trang vào repository
+    window.coursesRepository.push(
       {
         id: "coroutines-flow-core",
         title: "Coroutines & Flow Core Mechanics",
@@ -328,8 +335,7 @@ Object fetchUser(String id, Continuation completion) {
                       <span>Cấu Trúc Java Decompile Kiểm Tra Tái Sử Dụng</span>
                       <span class="text-amber-400">Bytecode Flow</span>
                     </div>
-                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>// Giả sử hàm suspend ban đầu: suspend fun loadData(): String
-public final Object loadData(Continuation completion) {
+                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>public final Object loadData(Continuation completion) {
     MyContinuation continuation;
 
     if (completion instanceof MyContinuation) {
@@ -341,14 +347,12 @@ public final Object loadData(Continuation completion) {
             goto label_continue;
         }
     }
-    // Nếu gọi lần đầu hoặc gọi đệ quy: cấp phát Continuation mới
     continuation = new MyContinuation(completion);
 
 label_continue:
     ...
 }
 
-// Bên trong phương thức invokeSuspend của class continuation:
 public final Object invokeSuspend(Object result) {
     this.result = result;
     this.label |= Integer.MIN_VALUE; // GẮN CỜ BIT ĐẦU TIÊN (MSB)
@@ -370,30 +374,26 @@ public final Object invokeSuspend(Object result) {
                     Integer.MIN_VALUE = 0x80000000 = 10000000_00000000_00000000_00000000 (Nhị phân)
                   </div>
 
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Kỹ thuật này tận dụng bit dấu làm một cờ nhị phân (boolean flag) mà <strong>không làm mất đi giá trị số bước thực tế của <code>label</code></strong> (vốn chỉ dùng các bit thấp 0, 1, 2...):
-                  </p>
-
                   <div class="space-y-3">
                     <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
                       <strong class="text-amber-600 dark:text-amber-400 block font-bold text-sm">1. Đánh dấu (Marking):</strong>
-                      <p>Khi coroutine resume, <code>invokeSuspend()</code> được kích hoạt. Lệnh <code class="font-mono font-bold">label |= Integer.MIN_VALUE</code> sẽ bật bit cao nhất lên 1. Ý nghĩa: <em>"Tôi đang gọi lại hàm cha để resume State Machine, hãy tái sử dụng chính object this này."</em></p>
+                      <p>Khi coroutine resume, <code>invokeSuspend()</code> được kích hoạt. Lệnh <code class="font-mono font-bold">label |= Integer.MIN_VALUE</code> sẽ bật bit cao nhất lên 1.</p>
                     </div>
 
                     <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
                       <strong class="text-sky-600 dark:text-sky-400 block font-bold text-sm">2. Kiểm tra (Checking):</strong>
-                      <p>Trong hàm cha, phép tính <code class="font-mono font-bold">(continuation.label & Integer.MIN_VALUE) != 0</code> kiểm tra xem bit cao nhất có đang bật hay không. Nếu khác 0: chứng tỏ đây là một pha resume gọi lại &rarr; Compiler lập tức tái sử dụng mà không gọi <code>new MyContinuation(...)</code>.</p>
+                      <p>Trong hàm cha, phép tính <code class="font-mono font-bold">(continuation.label & Integer.MIN_VALUE) != 0</code> kiểm tra bit dấu. Nếu khác 0: Compiler lập tức tái sử dụng instance mà không cấp phát mới.</p>
                     </div>
 
                     <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
                       <strong class="text-emerald-600 dark:text-emerald-400 block font-bold text-sm">3. Gỡ cờ (Unmarking):</strong>
-                      <p>Lệnh <code class="font-mono font-bold">continuation.label -= Integer.MIN_VALUE</code> (hoặc tương đương <code>^= Integer.MIN_VALUE</code>) lật bit dấu trở về 0. Giá trị <code>label</code> được trả lại chính xác con số nguyên ban đầu (0, 1, 2...) để đi vào khối <code>switch (label)</code>.</p>
+                      <p>Lệnh <code class="font-mono font-bold">continuation.label -= Integer.MIN_VALUE</code> lật bit dấu trở về 0 để phục hồi chỉ số bước ban đầu.</p>
                     </div>
                   </div>
 
                   <div class="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
                     <strong class="text-purple-700 dark:text-purple-300 font-bold block">Tác dụng phòng chống hỏng trạng thái khi Đệ Quy (Recursion Safety):</strong>
-                    <p>Nếu compiler chỉ kiểm tra <code>completion instanceof MyContinuation</code> mà không có con tem bit dấu này, thì khi hàm suspend gọi đệ quy chính nó, tầng con sẽ tưởng nhầm instance của tầng cha là instance cần tái sử dụng và ghi đè toàn bộ các biến cục bộ (<code>L$0, L$1</code>) của cha, dẫn đến lỗi State Corruption nghiêm trọng.</p>
+                    <p>Ngăn chặn trường hợp hàm gọi đệ quy chính nó vô tình ghi đè biến cục bộ của tầng cha do nhận nhầm instance cần tái sử dụng.</p>
                   </div>
                 </section>
               </div>
@@ -426,153 +426,56 @@ public final Object invokeSuspend(Object result) {
                     "Đại Số" CoroutineContext: Cấu Trúc Monoid & Keyed Set
                   </h3>
                   <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    <code>CoroutineContext</code> không phải là một HashMap thông thường mà là một cấu trúc dữ liệu bất biến (immutable keyed set) tối ưu cho các phép cộng tập hợp. Về mặt toán học, nó tạo thành một <strong>Monoid</strong>:
+                    <code>CoroutineContext</code> là một cấu trúc dữ liệu bất biến (immutable keyed set) tối ưu cho các phép cộng tập hợp, tạo thành một <strong>Monoid</strong>:
                   </p>
 
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
                     <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <span class="text-slate-400 block mb-1 font-bold">// 1. Phần tử đơn vị (Identity Element)</span>
+                      <span class="text-slate-400 block mb-1 font-bold">// 1. Phần tử đơn vị</span>
                       <span class="text-cyan-600 dark:text-cyan-400 font-bold">EmptyCoroutineContext</span>
                       <p class="text-[11px] text-slate-500 mt-1 font-sans">A + EmptyCoroutineContext == A</p>
                     </div>
                     <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <span class="text-slate-400 block mb-1 font-bold">// 2. Phép toán hai ngôi (Binary Operation)</span>
+                      <span class="text-slate-400 block mb-1 font-bold">// 2. Phép toán hai ngôi</span>
                       <span class="text-emerald-600 dark:text-emerald-400 font-bold">Toán tử + (plus)</span>
                       <p class="text-[11px] text-slate-500 mt-1 font-sans">Bảo toàn tính kết hợp (Associative)</p>
                     </div>
                   </div>
 
                   <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed list-disc pl-5">
-                    <li><strong>Các phần tử cốt lõi:</strong> Mỗi phần tử là một <code>Element</code> gắn với một <code>Key</code> định danh duy nhất: <code>Job</code> (vòng đời & phân cấp), <code>CoroutineDispatcher</code> (quản trị luồng), <code>CoroutineExceptionHandler</code> (bắt lỗi uncaught), <code>CoroutineName</code> (debug identifier).</li>
-                    <li><strong>Quy tắc Ghi đè bên phải (Right-side Override):</strong> Khi ghép <code>C = A + B</code>, nếu A và B cùng chung một <code>Key</code>, phần tử thuộc <strong>B sẽ thay thế phần tử của A</strong>.</li>
-                    <li><strong>Cấu trúc cây nhị phân lồng nhau (CombinedContext):</strong> Runtime không tốn bộ nhớ cấp phát hash table. Phép cộng tạo ra cấu trúc cây liên kết dạng <code>CombinedContext(left, element)</code>. Việc tra cứu <code>get(key)</code> hoặc loại bỏ <code>minusKey(key)</code> được thực thi bằng thuật toán duyệt đệ quy trên cây nhị phân này.</li>
+                    <li><strong>Right-side Override:</strong> Khi ghép <code>C = A + B</code>, nếu trùng <code>Key</code>, phần tử thuộc <strong>B sẽ đè A</strong>.</li>
+                    <li><strong>Cấu trúc CombinedContext:</strong> Dạng cây nhị phân liên kết <code>CombinedContext(left, element)</code>, tra cứu theo duyệt đệ quy.</li>
                   </ul>
-
-                  <div class="p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-300 space-y-1 overflow-x-auto custom-scroll">
-                    <div class="text-slate-500">// Minh họa toán tử cộng ghi đè:</div>
-                    <div>val ctx1 = Dispatchers.Main + Job()</div>
-                    <div>val ctx2 = Dispatchers.IO + CoroutineName("Worker")</div>
-                    <div class="text-emerald-400 font-bold mt-1">val finalCtx = ctx1 + ctx2</div>
-                    <div class="text-slate-400 text-[11px]">// &rarr; finalCtx gồm: Job ban đầu, CoroutineName("Worker"), và Dispatchers.IO (ghi đè Dispatchers.Main)</div>
-                  </div>
                 </section>
 
                 <section class="space-y-4">
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Quản Trị Luồng (ContinuationInterceptor & CoroutineScheduler)
-                  </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Mọi <code>CoroutineDispatcher</code> thực chất là một implementation của <code>ContinuationInterceptor</code>. Khi coroutine resume, nó không chạy tự do trên thread hiện tại mà bị đánh chặn:
-                  </p>
-
-                  <div class="p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-700 dark:text-slate-300">
-                    continuation.resumeWith() &rarr; Context tìm ContinuationInterceptor &rarr; Dispatcher đóng gói thành DispatchedContinuation &rarr; Gọi dispatcher.dispatch(context, block)
-                  </div>
-
-                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <table class="w-full text-left text-xs">
-                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th class="p-3">Dispatcher</th>
-                          <th class="p-3">Thread Pool Bên Dưới</th>
-                          <th class="p-3">Mục Đích Sử Dụng</th>
-                          <th class="p-3">Hạn Ngạch (Quota)</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-cyan-600 dark:text-cyan-400">Dispatchers.Default</td>
-                          <td class="p-3">Shared CoroutineScheduler Pool</td>
-                          <td class="p-3">Tính toán nặng CPU (Parse JSON, sorting, crypto)</td>
-                          <td class="p-3 font-mono">corePoolSize = max(2, CPU cores)</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">Dispatchers.IO</td>
-                          <td class="p-3">Dùng chung CoroutineScheduler với Default</td>
-                          <td class="p-3">Chặn I/O (Retrofit, Room, đọc ghi Disk, Network)</td>
-                          <td class="p-3 font-mono">max(64, CPU cores)</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">Dispatchers.Main</td>
-                          <td class="p-3">Android Main Looper / UI Thread</td>
-                          <td class="p-3">Thao tác View, MutableState, Collect Flow trên UI</td>
-                          <td class="p-3 font-mono">1 Thread duy nhất (Handler.post)</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-purple-600 dark:text-purple-400">Dispatchers.Unconfined</td>
-                          <td class="p-3">Không cố định luồng nào</td>
-                          <td class="p-3">Chạy ngay trên caller thread tới điểm suspend đầu tiên</td>
-                          <td class="p-3 font-mono">Không kiểm soát (Testing/Micro-task)</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                <section class="space-y-4">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">3</span>
                     Bản Chất Bên Dưới: CoroutineScheduler & Thuật Toán Work-Stealing
                   </h3>
                   <div class="p-4 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2 leading-relaxed">
-                    <p class="font-bold text-sky-700 dark:text-sky-300 text-sm">Cơ Chế Mượn/Trả Thread Qua Token CPU_PERMIT:</p>
-                    <p><code>Dispatchers.Default</code> và <code>Dispatchers.IO</code> không tạo ra 2 thread pool riêng biệt mà <strong>dùng chung một Worker Thread Pool duy nhất</strong> bên dưới thông qua bộ điều phối <code>CoroutineScheduler</code>:</p>
+                    <p class="font-bold text-sky-700 dark:text-sky-300 text-sm">Cơ Chế Dùng Chung Thread Pool Qua Token CPU_PERMIT:</p>
                     <ul class="list-disc pl-5 space-y-1">
-                      <li><strong>Default (CPU tasks):</strong> Worker thread phải sở hữu token <code>CPU_PERMIT</code> và chuyển trạng thái sang <code>CPU_ACQUIRED</code>. Giới hạn cứng bằng đúng số CPU Cores để triệt tiêu chi phí Context Switching của CPU.</li>
-                      <li><strong>IO (Blocking tasks):</strong> Khi task I/O bắt đầu, worker giải phóng token <code>CPU_PERMIT</code> và chuyển sang trạng thái <code>BLOCKING</code>. <code>CoroutineScheduler</code> phát hiện thiếu hụt luồng CPU sẽ lập tức spawn hoặc đánh thức một worker thread khác bù vào để xử lý các task CPU của Default.</li>
-                      <li><strong>Thuật toán Work-Stealing:</strong> Mỗi worker thread có 1 Local Queue chứa tối đa 128 task và 1 Global Queue. Nếu một worker rảnh rỗi, nó sẽ "đánh cắp" 50% số task từ Local Queue của worker khác để cân bằng tải trên toàn hệ thống.</li>
+                      <li><code>Dispatchers.Default</code> và <code>Dispatchers.IO</code> chia sẻ chung pool qua <code>CoroutineScheduler</code>.</li>
+                      <li><strong>Default:</strong> Nắm giữ token <code>CPU_PERMIT</code>, giới hạn cứng bằng số CPU Core để loại bỏ Context Switching.</li>
+                      <li><strong>IO:</strong> Khi gặp blocking I/O, nhả token <code>CPU_PERMIT</code> sang trạng thái <code>BLOCKING</code>; scheduler lập tức spawn thêm worker khác để bù tải CPU.</li>
+                      <li><strong>Work-Stealing:</strong> Worker rảnh rỗi tự động đánh cắp 50% số task từ Local Queue của worker khác.</li>
                     </ul>
                   </div>
                 </section>
 
                 <section class="space-y-4">
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center text-xs font-bold">4</span>
-                    Cạm Bẫy Nghẽn Thread (Thread Starvation) & Cách Phòng Ngừa
+                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Khoanh Vùng Tài Nguyên Bằng limitedParallelism
                   </h3>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div class="p-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-slate-700 dark:text-slate-300 space-y-1">
-                      <strong class="text-red-700 dark:text-red-400 font-bold block">1. Chạy Blocking Call trên Default:</strong>
-                      <p>Gọi <code>Thread.sleep()</code> hoặc <code>synchronized</code> trên Default sẽ phong tỏa toàn bộ thread CPU hiếm hoi. Khiến toàn bộ coroutine tính toán khác trong app bị tê liệt (starvation).</p>
-                    </div>
-                    <div class="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl text-slate-700 dark:text-slate-300 space-y-1">
-                      <strong class="text-amber-700 dark:text-amber-400 font-bold block">2. Cạn kiệt 64 Thread của IO Pool:</strong>
-                      <p>Nếu có 100 request I/O blocking bị treo cùng lúc, 64 thread sẽ bị chiếm trọn. Các tác vụ sau buộc phải nằm chờ vô tận trong Global Queue.</p>
-                    </div>
-                  </div>
-
-                  <div class="p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-300 space-y-3">
-                    <div>
-                      <span class="text-slate-500 block">// GIẢI PHÁP: Khoanh vùng tài nguyên bằng limitedParallelism</span>
-                      <span class="text-purple-400">val</span> imageIoDispatcher = <span class="text-sky-400">Dispatchers.IO.limitedParallelism</span>(4)<br/>
-                      <span class="text-purple-400">val</span> databaseDispatcher = <span class="text-sky-400">Dispatchers.IO.limitedParallelism</span>(8)
-                    </div>
-                    <p class="text-[11px] text-slate-400 font-sans leading-relaxed">
-                      &bull; <code>limitedParallelism</code> trên IO tạo ra một view điều phối độc lập: Tác vụ tải ảnh dù có nghẽn mạng cũng chỉ được dùng tối đa 4 thread, bảo vệ hoàn toàn các thread còn lại cho Database và Network quan trọng.
+                  <div class="p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-300 space-y-2">
+                    <span class="text-purple-400">val</span> imageIoDispatcher = <span class="text-sky-400">Dispatchers.IO.limitedParallelism</span>(4)<br/>
+                    <span class="text-purple-400">val</span> databaseDispatcher = <span class="text-sky-400">Dispatchers.IO.limitedParallelism</span>(8)
+                    <p class="text-[11px] text-slate-400 font-sans mt-2">
+                      Tạo ra view điều phối độc lập, bảo vệ các thread còn lại của IO pool khỏi tình trạng Thread Starvation khi có batch tác vụ nặng bị treo.
                     </p>
                   </div>
-                </section>
-
-                <section class="space-y-4">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">5</span>
-                    Sự Kế Thừa Context & Cạm Bẫy Phá Vỡ Structured Concurrency
-                  </h3>
-                  <ul class="text-sm text-slate-600 dark:text-slate-300 space-y-2.5 leading-relaxed list-disc pl-5">
-                    <li>
-                      <strong>Công thức kế thừa:</strong> Khi coroutine con khởi tạo từ cha (<code>parentScope.launch(childContext)</code>):
-                      <br/><code class="font-mono text-xs text-purple-600 dark:text-purple-400 font-bold">NewContext = ParentContext + ChildContext</code>
-                    </li>
-                    <li>
-                      <strong>Ngoại lệ sống còn của Job:</strong> Coroutine con <strong>luôn sinh ra một Job mới</strong> và thiết lập quan hệ cây phân cấp hai chiều với Job của cha.
-                    </li>
-                    <li>
-                      <strong class="text-red-600 dark:text-red-400">CẠM BẪY PHỎNG VẤN: Truyền Job() tường minh vào launch con</strong>
-                      <br/>Nếu viết <code>scope.launch(Job()) { ... }</code>, theo luật ghi đè, Job truyền vào sẽ cắt đứt hoàn toàn quan hệ với Job của Scope cha. Coroutine này biến thành "kẻ mồ côi", gây rò rỉ bộ nhớ (Memory Leak) nghiêm trọng!
-                    </li>
-                  </ul>
                 </section>
               </div>
             `
@@ -594,7 +497,7 @@ public final Object invokeSuspend(Object result) {
                     Toán Tử flowOn Đa Tầng & Context Preservation
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Bất biến thiết kế cốt lõi của Flow: Ngữ cảnh thực thi (CoroutineContext) của downstream luôn được tôn trọng và không bao giờ bị upstream âm thầm thay đổi.
+                    Bất biến thiết kế cốt lõi của Flow: Ngữ cảnh thực thi của downstream luôn được tôn trọng và không bao giờ bị upstream âm thầm thay đổi.
                   </p>
                 </div>
 
@@ -603,58 +506,9 @@ public final Object invokeSuspend(Object result) {
                     <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">1</span>
                     Nguyên Lý Context Preservation & Giải Mã 2 Tầng Crash
                   </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Một hàm phát dữ liệu không được phép tự ý ép buộc collector phải tiêu thụ dữ liệu trên một thread khác.
-                  </p>
-
-                  <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2 leading-relaxed">
-                    <strong class="text-red-700 dark:text-red-400 font-bold block text-sm">Giải Mã 2 Tầng Crash Khi Cố Tình Dùng withContext Quanh emit():</strong>
-                    <p><strong>• Tầng 1 (Lỗi Kiến Trúc Thư Viện):</strong> Lớp nội bộ <code>SafeCollector</code> so sánh context lúc emit với context lúc collect. Nhận thấy có sự lệch pha về <code>Job</code> hoặc <code>Dispatcher</code>, nó chủ động ném ngay <code>IllegalStateException: Flow invariant is violated</code>.</p>
-                    <p><strong>• Tầng 2 (Lỗi Hệ Điều Hành Android nếu không bị chặn):</strong> Giả sử bỏ qua SafeCollector, khối lệnh <code>collect { view.text = it }</code> trên UI Thread sẽ bị kéo sang chạy trực tiếp trên Worker Thread của IO, gây crash ứng dụng tức thì: <code>android.view.ViewRootImpl$CalledFromWrongThreadException: Only the original thread that created a view hierarchy can touch its views.</code></p>
-                  </div>
-                </section>
-
-                <section class="space-y-4">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Cơ Chế Hoạt Động Của flowOn Đa Tầng
-                  </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Toán tử <code>flowOn</code> chỉ có tác dụng ngược lên phía trước (<strong>Upstream</strong>), tính từ vị trí nó xuất hiện cho tới đầu nguồn <code>flow { }</code> hoặc một toán tử <code>flowOn</code> liền kề trước đó. Nó <strong>hoàn toàn không ảnh hưởng tới các toán tử phía sau (Downstream)</strong>.
-                  </p>
-
-                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <table class="w-full text-left text-xs">
-                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th class="p-3">Phân Đoạn Code</th>
-                          <th class="p-3">Ngữ Cảnh Thực Thi (Context)</th>
-                          <th class="p-3">Cơ Chế Quyết Định</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">flow { emit(...) }</td>
-                          <td class="p-3 font-mono">Dispatchers.IO</td>
-                          <td class="p-3">Quyết định bởi <code>.flowOn(Dispatchers.IO)</code> ngay sau nó.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-sky-600 dark:text-sky-400">.map { ... }</td>
-                          <td class="p-3 font-mono">Dispatchers.Default</td>
-                          <td class="p-3">Quyết định bởi <code>.flowOn(Dispatchers.Default)</code>.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">.filter { ... }</td>
-                          <td class="p-3 font-mono">Context của collect (ví dụ Main)</td>
-                          <td class="p-3">Không bị ảnh hưởng bởi các flowOn phía trên; theo context nơi gọi collect.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-purple-600 dark:text-purple-400">.collect { ... }</td>
-                          <td class="p-3 font-mono">Context của collect (ví dụ Main)</td>
-                          <td class="p-3">Tuân thủ triệt để Context của scope gọi coroutine ban đầu.</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2">
+                    <p><strong>• Tầng 1:</strong> <code>SafeCollector</code> phát hiện context lúc emit khác context lúc collect, ném ngay <code>IllegalStateException: Flow invariant is violated</code>.</p>
+                    <p><strong>• Tầng 2:</strong> Nếu không bị chặn, thao tác cập nhật UI sẽ bị kéo sang chạy trên background thread, ném <code>CalledFromWrongThreadException</code>.</p>
                   </div>
                 </section>
               </div>
@@ -677,62 +531,25 @@ public final Object invokeSuspend(Object result) {
                     Exception Transparency (Minh Bạch Ngoại Lệ)
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Nguyên tắc bất biến cốt tử trong Reactive Flow: <em>Một Flow không bao giờ được phép bắt hoặc nuốt ngoại lệ xảy ra ở downstream (phía người tiêu thụ dữ liệu/collector) một cách âm thầm.</em>
+                    Một Flow không bao giờ được phép bắt hoặc nuốt ngoại lệ xảy ra ở downstream một cách âm thầm. Ngoại lệ phát sinh từ downstream luôn phải được ném thẳng về phía nơi gọi collect.
                   </p>
                 </div>
 
                 <section class="space-y-4">
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span class="w-6 h-6 rounded-lg bg-pink-500/10 text-pink-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Thảm Họa Nuốt Lỗi Khi Bọc try-catch Quanh emit()
+                    Ranh Giới Bắt Lỗi Chuẩn Mực Của Toán Tử .catch {}
                   </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Lệnh <code>emit()</code> bản chất là gọi trực tiếp khối <code>collect</code> trên cùng call stack. Khi UI ném ra <code>IllegalStateException</code>, khối <code>try-catch</code> ở Repository vô tình nuốt chửng lỗi này và tưởng rằng đó là "Lỗi mạng".
-                  </p>
-
-                  <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-1.5 leading-relaxed">
-                    <strong class="text-red-700 dark:text-red-400 font-bold block text-sm">Cơ Chế SafeCollector:</strong>
-                    <p>Nếu bạn cố tình bắt lỗi quanh <code>emit()</code> và tiếp tục gọi một lệnh <code>emit()</code> khác trong khối catch, SafeCollector phát hiện sự bất thường và ném crash hệ thống ngay lập tức:</p>
-                    <div class="p-2 bg-slate-900 text-rose-400 font-mono rounded mt-1">
-                      IllegalStateException: Exception transparency has been violated: Flow exception transparency must be preserved.
-                    </div>
-                  </div>
-                </section>
-
-                <section class="space-y-4">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Bảng Tóm Tắt Cơ Chế Bảo Toàn Minh Bạch Ngoại Lệ
-                  </h3>
-
-                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <table class="w-full text-left text-xs">
-                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th class="p-3">Cơ Chế</th>
-                          <th class="p-3">Phạm Vi Bắt Lỗi</th>
-                          <th class="p-3">Tính Chất Minh Bạch</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-red-500">try-catch quanh emit()</td>
-                          <td class="p-3">Bắt cả lỗi upstream lẫn downstream</td>
-                          <td class="p-3 font-bold text-red-600 dark:text-red-400">Vi phạm nghiêm trọng (Bị chặn bởi SafeCollector)</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">Toán tử .catch { }</td>
-                          <td class="p-3">Chỉ bắt Upstream (code đứng trước nó)</td>
-                          <td class="p-3 font-bold text-emerald-600 dark:text-emerald-400">Chuẩn mực (Bảo toàn hoàn toàn lỗi downstream)</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-sky-600 dark:text-sky-400">try-catch quanh .collect { }</td>
-                          <td class="p-3">Bắt mọi lỗi xảy ra trong toàn chuỗi Flow</td>
-                          <td class="p-3 font-bold text-sky-600 dark:text-sky-400">Chuẩn mực (Consumer tự chịu trách nhiệm về lỗi của mình)</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <pre class="p-3.5 bg-slate-950 text-slate-200 font-mono text-xs rounded-xl overflow-x-auto custom-scroll"><code>repository.fetchUsers() // upstream
+    .map { parseUsers(it) } // upstream
+    .catch { throwable ->
+        // Chỉ bắt lỗi từ fetchUsers hoặc parseUsers
+        emit(emptyList())
+    }
+    .collect { users ->
+        // Downstream: Lỗi ném ra tại đây .catch TRÊN SẼ KHÔNG BẮT!
+        renderUI(users)
+    }</code></pre>
                 </section>
               </div>
             `
@@ -754,31 +571,30 @@ public final Object invokeSuspend(Object result) {
                     Kotlin Flow Nâng Cao: Backpressure & Operators
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Xử lý bất đối xứng tốc độ giữa Emitter và Collector: Bản chất Backpressure tự nhiên qua cơ chế suspend, phân loại Flattening/Throttling operators và quy tắc bất biến Context Preservation.
+                    Bản chất Backpressure tự nhiên qua cơ chế suspend, 3 chiến lược buffer, và phân loại Flattening/Throttling operators.
                   </p>
                 </div>
 
                 <section class="space-y-4">
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Bản Chất Của Backpressure Trong Cold Flow
+                    3 Chiến Lược Xử Lý Khi Tách Biệt Concurrency
                   </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Hàm <code>emit()</code> bản chất là một <strong>suspend fun</strong>. Nếu Downstream Consumer đang bận xử lý (bị suspend), Upstream Producer sẽ tự động bị suspend ngay tại lệnh <code>emit()</code>, không đẩy thêm phần tử mới cho đến khi collector sẵn sàng.
-                  </p>
-
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-sky-500">buffer()</span>
-                      <p class="text-slate-500">Tách Emitter và Collector sang 2 coroutine độc lập kết nối qua Channel đệm ngầm định (SUSPEND, DROP_OLDEST, DROP_LATEST).</p>
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400">buffer()</span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Đệm Dữ Liệu</h4>
+                      <p class="text-slate-500 dark:text-slate-400">Tách Emitter và Collector sang 2 coroutine nối qua Channel ngầm với các chiến lược SUSPEND, DROP_OLDEST, DROP_LATEST.</p>
                     </div>
-                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-teal-500">conflate()</span>
-                      <p class="text-slate-500">Tương đương buffer(1, DROP_OLDEST). Collector chỉ nhận giá trị mới nhất, drop mọi phần tử trung gian khi bận.</p>
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400">conflate()</span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Gộp Giá Trị Mới Nhất</h4>
+                      <p class="text-slate-500 dark:text-slate-400">Tương đương <code>buffer(1, DROP_OLDEST)</code>. Bỏ qua các giá trị trung gian khi collector đang bận.</p>
                     </div>
-                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-purple-500">collectLatest()</span>
-                      <p class="text-slate-500">Nếu có phần tử mới tới trong lúc phần tử cũ đang được xử lý, coroutine cũ lập tức bị cancel để chạy phần tử mới.</p>
+                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">collectLatest { }</span>
+                      <h4 class="font-bold text-slate-900 dark:text-white">Hủy Xử Lý Cũ</h4>
+                      <p class="text-slate-500 dark:text-slate-400">Hủy bỏ ngay lập tức coroutine của phần tử cũ nếu có phần tử mới xuất hiện.</p>
                     </div>
                   </div>
                 </section>
@@ -802,30 +618,21 @@ public final Object invokeSuspend(Object result) {
                     Jetpack Compose & Vòng Đời Thu Thập An Toàn
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Trong Declarative UI, việc thu thập StateFlow/Flow đòi hỏi phải nhận biết chính xác vòng đời (Lifecycle-aware) để triệt tiêu hao pin ngầm, rò rỉ bộ nhớ và crash do cập nhật UI khi View đã bị hủy.
+                    Nhận biết Android OS Lifecycle trong Declarative UI: triệt tiêu rò rỉ bộ nhớ, hao pin ngầm và giải mã cơ chế 5000ms WhileSubscribed.
                   </p>
                 </div>
 
                 <section class="space-y-4">
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Các Giải Pháp Thu Thập Chuẩn Mực
+                    collectAsStateWithLifecycle vs collectAsState
                   </h3>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <strong class="text-emerald-500 block text-sm">collectAsStateWithLifecycle()</strong>
-                      <p class="text-slate-600 dark:text-slate-300">Khuyên dùng chuẩn mực cho UI State. Tự động hủy collect khi màn hình xuống dưới STARTED và đăng ký lại khi quay lại STARTED.</p>
-                    </div>
-                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <strong class="text-amber-500 block text-sm">repeatOnLifecycle()</strong>
-                      <p class="text-slate-600 dark:text-slate-300">Dùng cho One-time events (Snackbar, Navigation) trong LaunchedEffect. Phải bọc từng flow trong launch riêng để tránh bị bỏ đói luồng!</p>
-                    </div>
-                  </div>
-
-                  <div class="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                    <strong class="text-purple-700 dark:text-purple-300 font-bold block">Bí Mật 5000ms Trong SharingStarted.WhileSubscribed(5_000):</strong>
-                    <p>Khi xoay màn hình, Activity mất 200-500ms để tạo lại. Khoảng chờ 5s là vùng đệm giữ upstream Flow không bị ngắt/tạo lại, tránh reload API và nhấp nháy giao diện.</p>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <code>collectAsState()</code> chỉ gắn với Composition Lifecycle. Khi app rơi vào Background, luồng vẫn tiếp tục collect gây hao pin. <code>collectAsStateWithLifecycle()</code> tự động dừng thu thập khi vòng đời xuống dưới <code>STARTED</code>.
+                  </p>
+                  <div class="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
+                    <strong class="text-purple-700 dark:text-purple-300 font-bold block">Bí Mật Con Số 5000ms Trong SharingStarted.WhileSubscribed(5_000):</strong>
+                    <p>Khoảng trễ 5 giây đóng vai trò vùng đệm (grace period) giữ upstream không bị hủy khi xoay màn hình (Activity recreate mất 200-500ms), tránh lãng phí request dữ liệu mới.</p>
                   </div>
                 </section>
               </div>
@@ -848,44 +655,34 @@ public final Object invokeSuspend(Object result) {
                     Channels, Concurrency & Biểu Thức Select
                   </h2>
                   <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Triển khai lý thuyết CSP (Communicating Sequential Processes) của C.A.R. Hoare: <em>"Không giao tiếp bằng cách chia sẻ bộ nhớ; thay vào đó, hãy chia sẻ bộ nhớ bằng cách giao tiếp."</em>
+                    Triển khai lý thuyết CSP: Kênh truyền thông điệp bất đồng bộ (hot stream), các mô hình Fan-in, Fan-out và biểu thức ghép kênh atomic <code>select</code>.
                   </p>
                 </div>
 
                 <section class="space-y-4">
                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span class="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Channels (Kênh Truyền Thông Điệp) & Các Loại Buffer
+                    Phân Biệt Cốt Lõi: Channel vs Flow
                   </h3>
                   <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
                     <table class="w-full text-left text-xs">
                       <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
                         <tr>
-                          <th class="p-3">Loại Channel</th>
-                          <th class="p-3">Dung Lượng Buffer</th>
-                          <th class="p-3">Hành Vi Khi Gọi send(element)</th>
+                          <th class="p-3">Đặc Tính</th>
+                          <th class="p-3">Channel</th>
+                          <th class="p-3">StateFlow / SharedFlow</th>
                         </tr>
                       </thead>
                       <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
                         <tr>
-                          <td class="p-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">Channel.RENDEZVOUS</td>
-                          <td class="p-3 font-mono">0 phần tử (Mặc định)</td>
-                          <td class="p-3">send() suspend chờ receiver gọi receive() (Handshake).</td>
+                          <td class="p-3 font-bold">Mô hình</td>
+                          <td class="p-3 text-indigo-500 font-semibold">Unicast (1 - 1, chia nhau nhận)</td>
+                          <td class="p-3 text-sky-500 font-semibold">Multicast (1 - N, phát sóng tất cả)</td>
                         </tr>
                         <tr>
-                          <td class="p-3 font-mono font-bold text-cyan-600 dark:text-cyan-400">Channel.BUFFERED</td>
-                          <td class="p-3 font-mono">Cố định (mặc định 64)</td>
-                          <td class="p-3">send() chạy tiếp ngay, chỉ suspend khi buffer đầy.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-red-500">Channel.UNLIMITED</td>
-                          <td class="p-3 font-mono">Vô hạn (LinkedList)</td>
-                          <td class="p-3">send() không bao giờ suspend. Nguy cơ OOM nếu producer nhanh hơn consumer.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-mono font-bold text-amber-600 dark:text-amber-400">Channel.CONFLATED</td>
-                          <td class="p-3 font-mono">1 phần tử (Ghi đè)</td>
-                          <td class="p-3">Ghi đè phần tử cũ nếu receiver chưa kịp đọc (tương tự StateFlow).</td>
+                          <td class="p-3 font-bold">Mục đích</td>
+                          <td class="p-3">Hàng đợi công việc, Single-run tasks</td>
+                          <td class="p-3">Lưu trữ UI State, Broadcast Events</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1074,10 +871,13 @@ public final Object invokeSuspend(Object result) {
           }
         ]
       }
-    ];
+    );
 
-    let currentCourseId = "coroutines-flow-core";
-    let currentLessonId = "cps-decompile-jit";
+    // 3. Gán danh sách khóa học hoàn chỉnh cho ứng dụng
+    const coursesRepository = window.coursesRepository;
+
+    let currentCourseId = coursesRepository[0]?.id || "coroutines-flow-core";
+    let currentLessonId = coursesRepository[0]?.lessons[0]?.id || "cps-decompile-jit";
     let searchQuery = "";
 
     const homeView = document.getElementById("home-view");
@@ -1106,7 +906,7 @@ public final Object invokeSuspend(Object result) {
           <div class="col-span-full text-center py-12 text-slate-400">
             <i class="fa-solid fa-magnifying-glass text-3xl mb-3 text-slate-500"></i>
             <p class="text-sm font-semibold">Không tìm thấy khóa học hoặc bài giảng nào phù hợp</p>
-            <p class="text-xs text-slate-500 mt-1">Thử từ khóa khác như "Coroutine", "Room", "Flow", "Compose"...</p>
+            <p class="text-xs text-slate-500 mt-1">Thử từ khóa khác như "Coroutine", "HLS", "Room", "Flow", "Compose"...</p>
           </div>
         `;
         return;
