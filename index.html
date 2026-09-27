@@ -579,6 +579,20 @@ val player = ExoPlayer.Builder(context).build().apply {
     </div>
 
   </div>
+    function renderLessonContent(lessonId) {
+      const course = coursesRepository.find(c => c.id === currentCourseId);
+      const lesson = course ? course.lessons.find(l => l.id === lessonId) : null;
+      const main = document.getElementById("article-container");
+  
+      if (main && lesson) {
+        main.innerHTML = lesson.content;
+
+        // Cuộn khung đọc nội dung lên đầu trang
+        if (main.parentElement) {
+          main.parentElement.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+    }
 
   <!-- Footer -->
   <footer class="bg-dark text-white text-center py-4 mt-5">
