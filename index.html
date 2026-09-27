@@ -590,431 +590,6 @@ public final Object invokeSuspend(Object result) {
               </div>
             `
           },
-          // === KHÓA HỌC: ROOM DATABASE ARCHITECTURE: CƠ BẢN ĐẾN SENIOR ===
-          {
-            id: "room-database-senior",
-            title: "Room Database Architecture: Cơ Bản Đến Senior",
-            category: "Persistence",
-            icon: "fa-database",
-            color: "from-emerald-500 to-teal-700",
-            badge: "Senior DB",
-            description: "SQLite Type Affinity, @TypeConverter 2 chiều, ACID & Transaction, tối ưu Performance, quan hệ 1-N, InvalidationTracker, WAL mode, Migration an toàn và Clean Architecture.",
-            lessons: [
-              {
-                id: "room-core-type-affinity",
-                num: "01",
-                badge: "Core & Schema",
-                title: "Nền Tảng SQLite Type Affinity & Bản Chất @TypeConverter",
-                desc: "Dynamic Typing, 5 storage classes, giới hạn CursorWindow và cơ chế chuyển đổi 2 chiều của TypeConverter.",
-                content: `
-              <div class="space-y-8">
-                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Chuyên Đề 01</span>
-                    <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">SQLite Core</span>
-                  </div>
-                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Nền Tảng SQLite Type Affinity & Cơ Chế @TypeConverter
-                  </h2>
-                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Khác với hệ RDBMS kiểm tra kiểu tĩnh (PostgreSQL, MySQL), SQLite dùng cơ chế <strong>Dynamic Typing (Type Affinity)</strong>: kiểu dữ liệu gắn với <em>giá trị thực tế được lưu</em>, không gắn cố định vào column.
-                  </p>
-                </div>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">1</span>
-                    5 Kiểu Lưu Trữ Nguyên Bản Của SQLite
-                  </h3>
-                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <table class="w-full text-left text-xs">
-                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th class="p-3">Kiểu SQLite</th>
-                          <th class="p-3">Bản chất kỹ thuật</th>
-                          <th class="p-3">Mapping Kotlin</th>
-                          <th class="p-3">Góc Nhìn Senior / Cạm Bẫy</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
-                        <tr>
-                          <td class="p-3 font-bold text-emerald-500">NULL</td>
-                          <td class="p-3 font-sans">Giá trị rỗng, chiếm ít dung lượng nhất.</td>
-                          <td class="p-3 text-sky-400">T? (nullable)</td>
-                          <td class="p-3 font-sans">Trong so sánh: <code>NULL = NULL</code> luôn trả về false.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-bold text-emerald-500">INTEGER</td>
-                          <td class="p-3 font-sans">Số nguyên có dấu, tự co giãn từ 1 đến 8 bytes.</td>
-                          <td class="p-3 text-sky-400">Byte, Int, Long, Boolean</td>
-                          <td class="p-3 font-sans">Tiết kiệm bộ nhớ; <code>Boolean</code> thực chất được lưu là 0 hoặc 1.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-bold text-emerald-500">REAL</td>
-                          <td class="p-3 font-sans">Số thực 8-byte IEEE floating point.</td>
-                          <td class="p-3 text-sky-400">Float, Double</td>
-                          <td class="p-3 font-sans"><strong>Không lưu tiền tệ</strong> do sai số dấu phẩy động (nên lưu Long cents).</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-bold text-emerald-500">TEXT</td>
-                          <td class="p-3 font-sans">Chuỗi mã hóa UTF-8 hoặc UTF-16.</td>
-                          <td class="p-3 text-sky-400">String, Char</td>
-                          <td class="p-3 font-sans">Không giới hạn VARCHAR(255). Giới hạn tối đa có thể lên đến 1GB.</td>
-                        </tr>
-                        <tr>
-                          <td class="p-3 font-bold text-emerald-500">BLOB</td>
-                          <td class="p-3 font-sans">Binary Large Object (chuỗi bytes nguyên bản).</td>
-                          <td class="p-3 text-sky-400">ByteArray</td>
-                          <td class="p-3 font-sans">Tránh lưu ảnh lớn (&gt; 1-2MB) gây tràn bộ đệm <code>CursorWindow</code> (giới hạn 2MB).</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Cơ Chế Cốt Lõi Của @TypeConverter
-                  </h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    <code>@TypeConverter</code> <strong>không chỉ giới hạn ở String &harr; TEXT</strong>. Bản chất là cung cấp một cặp hàm 2 chiều để chuyển đổi một kiểu dữ liệu Kotlin phức tạp thành <strong>1 trong 5 kiểu SQLite hiểu được</strong> và ngược lại:
-                  </p>
-                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
-                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>class AppTypeConverters {
-    // 1. Instant <-> Long (SQLite lưu INTEGER - Epoch Milliseconds)
-    @TypeConverter
-    fun fromInstant(instant: Instant?): Long? = instant?.toEpochMilli()
-
-    @TypeConverter
-    fun toInstant(millis: Long?): Instant? = millis?.let { Instant.ofEpochMilli(it) }
-
-    // 2. List&lt;String&gt; <-> JSON String (SQLite lưu TEXT)
-    @TypeConverter
-    fun fromStringList(tags: List&lt;String&gt;?): String? = tags?.let { Json.encodeToString(it) }
-
-    @TypeConverter
-    fun toStringList(json: String?): List&lt;String&gt;? = json?.let { Json.decodeFromString(it) }
-}</code></pre>
-                  </div>
-                </section>
-              </div>
-            `
-              },
-              {
-                id: "room-acid-transactions-performance",
-                num: "02",
-                badge: "Performance & ACID",
-                title: "ACID, @Transaction & Tối Ưu Best Performance",
-                desc: "Nguyên lý ACID, Dirty Reads, Bulk Inserts, Partial Entities, Indexing và tối ưu CursorWindow.",
-                content: `
-              <div class="space-y-8">
-                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">Chuyên Đề 02</span>
-                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Concurrency & Tuning</span>
-                  </div>
-                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    ACID, @Transaction & Tối Ưu Hiệu Năng Truy Vấn
-                  </h2>
-                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Bảo toàn tính nhất quán dữ liệu bằng Transaction và các kỹ thuật giúp Room đạt hiệu năng tối đa trên thiết bị di động.
-                  </p>
-                </div>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Nguyên Lý ACID & 3 Trường Hợp Bắt Buộc Dùng Transaction
-                  </h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-emerald-600 dark:text-emerald-400">Atomicity (Nguyên tử) & Consistency (Nhất quán)</span>
-                      <p class="text-slate-500 dark:text-slate-400">Tất cả lệnh thành công hoặc rollback toàn bộ; schema và khóa ngoại luôn hợp lệ.</p>
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-sky-600 dark:text-sky-400">Isolation (Cô lập) & Durability (Bền bỉ)</span>
-                      <p class="text-slate-500 dark:text-slate-400">Các tác vụ song song không can thiệp nhau; dữ liệu đã commit tồn tại vĩnh viễn dù app crash.</p>
-                    </div>
-                  </div>
-
-                  <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
-                    <strong class="text-amber-400 block font-bold">Khi nào bắt buộc dùng Transaction?</strong>
-                    <ul class="list-disc pl-5 space-y-1 leading-relaxed">
-                      <li><strong>Nhiều tác vụ ghi phụ thuộc:</strong> Ví dụ: trừ ví tiền ở Bảng A và ghi lịch sử vào Bảng B. Nếu bước B lỗi, bước A phải rollback ngay.</li>
-                      <li><strong>Thao tác ghi hàng loạt (Bulk Operations):</strong> Khi insert 1.000 dòng, không có Transaction SQLite phải mở/đóng file 1.000 lần. Gộp vào 1 Transaction giúp tăng tốc lên hàng chục lần.</li>
-                      <li><strong>Query quan hệ (@Relation):</strong> Room thực thi ít nhất 2 câu lệnh <code>SELECT</code> độc lập. Phải bọc <code>@Transaction</code> để tránh <strong>Dirty Read</strong> (dữ liệu bảng con bị đổi giữa 2 lần đọc).</li>
-                    </ul>
-                  </div>
-                </section>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Kỹ Thuật Đạt Best Performance Khi Query
-                  </h3>
-                  <div class="space-y-3 text-xs">
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <strong class="text-slate-900 dark:text-white font-bold text-sm">1. Đánh Index chính xác ($O(\\log N)$ vs $O(N)$)</strong>
-                      <p class="text-slate-600 dark:text-slate-300">Đánh <code>@Index</code> cho các cột thường xuyên nằm trong <code>WHERE</code>, <code>JOIN</code>, <code>ORDER BY</code>. <em>Lưu ý Senior:</em> Không đánh index bừa bãi vì làm giảm tốc độ ghi (mỗi lệnh INSERT/UPDATE phải cập nhật lại cây B-Tree index).</p>
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <strong class="text-slate-900 dark:text-white font-bold text-sm">2. Tránh "SELECT *" bằng Partial Entities (Chống nghẽn CursorWindow)</strong>
-                      <p class="text-slate-600 dark:text-slate-300">Bộ đệm <code>CursorWindow</code> của Android chỉ có 2MB. Nếu bảng có 30 cột mà UI danh sách chỉ cần <code>id</code> và <code>title</code>, hãy tạo POJO rút gọn để select: giảm cấp phát RAM và tránh lỗi văng app <code>RowTooBigException</code>.</p>
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <strong class="text-slate-900 dark:text-white font-bold text-sm">3. Phân trang lười qua Paging 3</strong>
-                      <p class="text-slate-600 dark:text-slate-300">Trả về <code>PagingSource&lt;Int, Entity&gt;</code> từ DAO để tải dữ liệu gối đầu từng trang nhỏ thay vì load cả 10.000 items vào RAM cùng lúc.</p>
-                    </div>
-                  </div>
-                </section>
-              </div>
-            `
-              },
-              {
-                id: "room-relations-normalization",
-                num: "03",
-                badge: "Database Design",
-                title: "Chuẩn Hóa Quan Hệ 1-N (One-to-Many) Thay Thế JSON",
-                desc: "Foreign Key, CASCADE, B-Tree Indexing trên foreign column, Relation DTO và phòng chống Dirty Reads.",
-                content: `
-              <div class="space-y-8">
-                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-mono font-bold">Chuyên Đề 03</span>
-                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Schema Normalization</span>
-                  </div>
-                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Chuẩn Hóa Quan Hệ 1-N (One-to-Many) Thay Cho JSON
-                  </h2>
-                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Lưu danh sách dạng chuỗi JSON khiến truy vấn tìm kiếm <code>WHERE tag = ?</code> rơi vào $O(N)$ (Full Table Scan). Chuẩn hóa sang 2 bảng riêng giúp đạt tốc độ $O(\\log N)$ nhờ B-Tree Index và bảo toàn toàn vẹn dữ liệu.
-                  </p>
-                </div>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Cấu Trúc Entities Kèm Foreign Key & Index
-                  </h3>
-                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
-                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>// Bảng Cha: notes (1)
-@Entity(tableName = "notes")
-data class NoteEntity(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "note_id") val noteId: Long = 0,
-    val title: String,
-    val content: String
-)
-
-// Bảng Con: tags (N)
-@Entity(
-    tableName = "tags",
-    foreignKeys = [
-        ForeignKey(
-            entity = NoteEntity::class,
-            parentColumns = ["note_id"],
-            childColumns = ["note_id"],
-            onDelete = ForeignKey.CASCADE // Xóa Note tự động xóa sạch các Tags liên quan
-        )
-    ],
-    indices = [
-        Index(value = ["note_id"]),  // Tối ưu truy vấn nối bảng JOIN
-        Index(value = ["tag_name"]) // Tối ưu tìm kiếm theo tag O(log N)
-    ]
-)
-data class TagEntity(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "tag_id") val tagId: Long = 0,
-    @ColumnInfo(name = "note_id") val noteId: Long,
-    @ColumnInfo(name = "tag_name") val tagName: String
-)</code></pre>
-                  </div>
-                </section>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
-                    DTO Quan Hệ & Bắt Buộc @Transaction Cho Relation
-                  </h3>
-                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
-                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>data class NoteWithTags(
-    @Embedded val note: NoteEntity,
-    @Relation(
-        parentColumn = "note_id",
-        entityColumn = "note_id"
-    )
-    val tags: List&lt;TagEntity&gt;
-)
-
-@Dao
-interface NoteDao {
-    @Transaction
-    @Query("SELECT * FROM notes")
-    fun getNotesWithTags(): Flow&lt;List&lt;NoteWithTags&gt;&gt;
-
-    @Transaction
-    @Query("""
-        SELECT * FROM notes 
-        INNER JOIN tags ON notes.note_id = tags.note_id 
-        WHERE tags.tag_name = :tagQuery
-    """)
-    fun getNotesByTag(tagQuery: String): Flow&lt;List&lt;NoteWithTags&gt;&gt;
-}</code></pre>
-                  </div>
-                </section>
-              </div>
-            `
-              },
-              {
-                id: "room-concurrency-wal-migration",
-                num: "04",
-                badge: "Senior Internals",
-                title: "WAL Concurrency, InvalidationTracker & Migration Production",
-                desc: "So sánh WAL vs Rollback Journal, Triggers ngầm trong SQLite, cây quyết định 3 chiến lược migration và quy trình 4 bước.",
-                content: `
-              <div class="space-y-8">
-                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">Chuyên Đề 04</span>
-                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Production Ready</span>
-                  </div>
-                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    WAL Mode, InvalidationTracker & Chiến Lược Migration
-                  </h2>
-                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Cơ chế hoạt động đa luồng tầng thấp, SQLite triggers ngầm phát tín hiệu cho Flow và chiến lược di chuyển dữ liệu an toàn trên Production.
-                  </p>
-                </div>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Cơ Chế InvalidationTracker & WAL Concurrency
-                  </h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-teal-600 dark:text-teal-400">InvalidationTracker Hoạt Động Ra Sao?</span>
-                      <p class="text-slate-500 dark:text-slate-400">Room tạo bảng ngầm <code>room_table_modification_log</code> và gắn triggers (<code>INSERT, UPDATE, DELETE</code>). Khi dữ liệu đổi, tracker trên background thread kiểm tra và kích hoạt re-query cho các luồng <code>Flow</code> đang quan sát.</p>
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span class="font-bold text-emerald-600 dark:text-emerald-400">WAL vs Rollback Journal</span>
-                      <p class="text-slate-500 dark:text-slate-400">Rollback Journal khóa toàn bộ DB khi ghi (Read chặn Write). <strong>WAL Mode (từ Android 9)</strong> ghi nối vào file <code>-wal</code> riêng biệt: cho phép <strong>1 Writer chạy song song với nhiều Reader</strong> mà không gây nghẽn.</p>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Cây Quyết Định Chọn 1 Trong 3 Chiến Lược Migration
-                  </h3>
-                  <div class="p-4 bg-slate-900 text-slate-200 font-mono text-xs rounded-xl overflow-x-auto leading-relaxed border border-slate-800">
-Schema thay đổi
-   │
-   ├─► App đang dev / Dữ liệu chỉ là cache API tạm thời?
-   │      └──> Dùng DESTRUCTIVE MIGRATION (fallbackToDestructiveMigration)
-   │
-   └─► Dữ liệu người dùng quan trọng trên Production (KHÔNG ĐƯỢC MẤT)?
-          │
-          ├─► Thay đổi đơn giản (thêm cột có default/null, thêm bảng mới)?
-          │      └──> Dùng AUTO MIGRATION (@AutoMigration)
-          │
-          └─► Thay đổi phức tạp (đổi kiểu cột, tách/gộp bảng, di chuyển dữ liệu)?
-                 └──> Dùng MANUAL MIGRATION (Migration(N, N+1))
-                  </div>
-
-                  <div class="space-y-2 text-xs">
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <strong>1. Destructive:</strong> Xóa sạch file DB cũ và tạo lại từ đầu. Toàn bộ dữ liệu user sẽ mất. Chỉ dùng lúc dev hoặc cache tạm.
-                    </div>
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <strong>2. Auto Migration:</strong> Khai báo <code>@AutoMigration(from = 1, to = 2)</code>, Room tự đối chiếu file schema JSON để sinh mã SQL.
-                    </div>
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <strong>3. Manual Migration:</strong> Tự viết SQL thô qua <code>Migration(from, to)</code> cho các thao tác phức tạp mà Auto Migration không xử lý được.
-                    </div>
-                  </div>
-                </section>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">3</span>
-                    Vì Sao Bắt Buộc Cần Quy Trình Migration An Toàn Trên Production?
-                  </h3>
-                  <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-2 list-disc pl-5 leading-relaxed">
-                    <li><strong>Ngăn ngừa Crash ngay khi mở app:</strong> Nếu tăng version DB mà không có migration path, Room lập tức văng app với <code>IllegalStateException: A migration from X to Y was required but not found</code>.</li>
-                    <li><strong>Bảo vệ dữ liệu người dùng:</strong> Tránh tình trạng người dùng mất sạch dữ liệu offline chỉ vì cập nhật app phiên bản mới.</li>
-                    <li><strong>Xử lý người dùng nhảy cóc phiên bản:</strong> User có thể cập nhật từ v1 lên thẳng v4. Chuỗi <code>Migration(1, 2)</code>, <code>(2, 3)</code>, <code>(3, 4)</code> giúp Room tự động móc nối chạy tuần tự an toàn.</li>
-                  </ul>
-
-                  <div class="p-3.5 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300">
-                    <strong class="text-purple-700 dark:text-purple-300 font-bold block mb-1">Quy trình 4 bước vượt qua giới hạn của SQLite:</strong>
-                    SQLite không hỗ trợ các lệnh <code>ALTER TABLE</code> phức tạp. Quy trình chuẩn là:
-                    <code>Tạo bảng tạm mới (1) &rarr; Copy dữ liệu từ bảng cũ sang (2) &rarr; Xóa bảng cũ (3) &rarr; Đổi tên bảng tạm thành bảng chính (4)</code>. Sau đó kiểm thử tự động với <code>MigrationTestHelper</code>.
-                  </div>
-                </section>
-              </div>
-            `
-              },
-              {
-                id: "room-clean-architecture",
-                num: "05",
-                badge: "Architecture",
-                title: "Tích Hợp Room Chuẩn Clean Architecture",
-                desc: "Phân tách Domain Model vs Entity, Repository làm Single Source of Truth và Dependency Injection với Hilt.",
-                content: `
-              <div class="space-y-8">
-                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Chuyên Đề 05</span>
-                    <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">Clean Arch</span>
-                  </div>
-                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Tích Hợp Room Chuẩn Clean Architecture
-                  </h2>
-                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
-                    Tách biệt ranh giới giữa tầng Persistence (Data Layer) và nghiệp vụ thuần túy (Domain Layer) để đảm bảo tính độc lập và khả năng Unit Test.
-                  </p>
-                </div>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">1</span>
-                    Quy Tắc Phân Tách Model: Entity &ne; Domain Model
-                  </h3>
-                  <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto">
-[ Domain Layer ]  <--- Pure Kotlin: Note (Business Rules)
-       ▲
-       │ Mappers: NoteEntity.toDomain() / Note.toEntity()
-       ▼
-[ Data Layer ]    <--- Room: NoteEntity (SQLite Storage Rules), DAO, RoomDatabase
-                  </div>
-                  <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-disc pl-5">
-                    <li><strong>Không truyền <code>@Entity</code> lên UI:</strong> Entity phục vụ việc tổ chức bảng trong SQLite; Domain Model phục vụ nghiệp vụ. Đổi schema DB không được làm ảnh hưởng đến Compose UI.</li>
-                    <li><strong>Sử dụng Mapper Extension:</strong> Chuyển đổi 2 chiều giữa <code>Entity</code> và <code>Domain Model</code> ngay tại tầng Data trước khi trả dữ liệu ra bên ngoài.</li>
-                  </ul>
-                </section>
-
-                <section class="space-y-3">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">2</span>
-                    Repository Là Single Source of Truth (SSOT) & Hilt DI
-                  </h3>
-                  <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <strong>Luồng dữ liệu SSOT:</strong> Remote API &rarr; Lưu vào Room Database &rarr; Phát luồng <code>Flow&lt;List&lt;DomainModel&gt;&gt;</code> từ Room cho ViewModel. UI chỉ quan sát 1 nguồn dữ liệu duy nhất là Local DB.
-                    </div>
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <strong>Dependency Injection (Hilt):</strong> Cung cấp <code>RoomDatabase</code> dưới dạng <code>@Singleton</code>. Chỉ inject trực tiếp các <code>DAO</code> interface vào Repository Implementation; không bao giờ inject thẳng <code>RoomDatabase</code> vào ViewModel hay UseCase.
-                    </div>
-                  </div>
-                </section>
-              </div>
-            `
-              }
-            ]
-          },
           {
             id: "flow-advanced-backpressure",
             num: "06",
@@ -1147,6 +722,432 @@ Schema thay đổi
                         </tr>
                       </tbody>
                     </table>
+                  </div>
+                </section>
+              </div>
+            `
+          }
+        ]
+      },
+
+      // === KHÓA HỌC: ROOM DATABASE ARCHITECTURE: CƠ BẢN ĐẾN SENIOR ===
+      {
+        id: "room-database-senior",
+        title: "Room Database Architecture: Cơ Bản Đến Senior",
+        category: "Persistence",
+        icon: "fa-database",
+        color: "from-emerald-500 to-teal-700",
+        badge: "Senior DB",
+        description: "SQLite Type Affinity, @TypeConverter 2 chiều, ACID & Transaction, tối ưu Performance, quan hệ 1-N, InvalidationTracker, WAL mode, Migration an toàn và Clean Architecture.",
+        lessons: [
+          {
+            id: "room-core-type-affinity",
+            num: "01",
+            badge: "Core & Schema",
+            title: "Nền Tảng SQLite Type Affinity & Bản Chất @TypeConverter",
+            desc: "Dynamic Typing, 5 storage classes, giới hạn CursorWindow và cơ chế chuyển đổi 2 chiều của TypeConverter.",
+            content: `
+              <div class="space-y-8">
+                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Chuyên Đề 01</span>
+                    <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">SQLite Core</span>
+                  </div>
+                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Nền Tảng SQLite Type Affinity & Cơ Chế @TypeConverter
+                  </h2>
+                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+                    Khác với hệ RDBMS kiểm tra kiểu tĩnh (PostgreSQL, MySQL), SQLite dùng cơ chế <strong>Dynamic Typing (Type Affinity)</strong>: kiểu dữ liệu gắn với <em>giá trị thực tế được lưu</em>, không gắn cố định vào column.
+                  </p>
+                </div>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">1</span>
+                    5 Kiểu Lưu Trữ Nguyên Bản Của SQLite
+                  </h3>
+                  <div class="overflow-x-auto custom-scroll border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th class="p-3">Kiểu SQLite</th>
+                          <th class="p-3">Bản chất kỹ thuật</th>
+                          <th class="p-3">Mapping Kotlin</th>
+                          <th class="p-3">Góc Nhìn Senior / Cạm Bẫy</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
+                        <tr>
+                          <td class="p-3 font-bold text-emerald-500">NULL</td>
+                          <td class="p-3 font-sans">Giá trị rỗng, chiếm ít dung lượng nhất.</td>
+                          <td class="p-3 text-sky-400">T? (nullable)</td>
+                          <td class="p-3 font-sans">Trong so sánh: <code>NULL = NULL</code> luôn trả về false.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-emerald-500">INTEGER</td>
+                          <td class="p-3 font-sans">Số nguyên có dấu, tự co giãn từ 1 đến 8 bytes.</td>
+                          <td class="p-3 text-sky-400">Byte, Int, Long, Boolean</td>
+                          <td class="p-3 font-sans">Tiết kiệm bộ nhớ; <code>Boolean</code> thực chất được lưu là 0 hoặc 1.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-emerald-500">REAL</td>
+                          <td class="p-3 font-sans">Số thực 8-byte IEEE floating point.</td>
+                          <td class="p-3 text-sky-400">Float, Double</td>
+                          <td class="p-3 font-sans"><strong>Không lưu tiền tệ</strong> do sai số dấu phẩy động (nên lưu Long cents).</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-emerald-500">TEXT</td>
+                          <td class="p-3 font-sans">Chuỗi mã hóa UTF-8 hoặc UTF-16.</td>
+                          <td class="p-3 text-sky-400">String, Char</td>
+                          <td class="p-3 font-sans">Không giới hạn VARCHAR(255). Giới hạn tối đa có thể lên đến 1GB.</td>
+                        </tr>
+                        <tr>
+                          <td class="p-3 font-bold text-emerald-500">BLOB</td>
+                          <td class="p-3 font-sans">Binary Large Object (chuỗi bytes nguyên bản).</td>
+                          <td class="p-3 text-sky-400">ByteArray</td>
+                          <td class="p-3 font-sans">Tránh lưu ảnh lớn (&gt; 1-2MB) gây tràn bộ đệm <code>CursorWindow</code> (giới hạn 2MB).</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Cơ Chế Cốt Lõi Của @TypeConverter
+                  </h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <code>@TypeConverter</code> <strong>không chỉ giới hạn ở String &harr; TEXT</strong>. Bản chất là cung cấp một cặp hàm 2 chiều để chuyển đổi một kiểu dữ liệu Kotlin phức tạp thành <strong>1 trong 5 kiểu SQLite hiểu được</strong> và ngược lại:
+                  </p>
+                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
+                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>class AppTypeConverters {
+    // 1. Instant <-> Long (SQLite lưu INTEGER - Epoch Milliseconds)
+    @TypeConverter
+    fun fromInstant(instant: Instant?): Long? = instant?.toEpochMilli()
+
+    @TypeConverter
+    fun toInstant(millis: Long?): Instant? = millis?.let { Instant.ofEpochMilli(it) }
+
+    // 2. List&lt;String&gt; <-> JSON String (SQLite lưu TEXT)
+    @TypeConverter
+    fun fromStringList(tags: List&lt;String&gt;?): String? = tags?.let { Json.encodeToString(it) }
+
+    @TypeConverter
+    fun toStringList(json: String?): List&lt;String&gt;? = json?.let { Json.decodeFromString(it) }
+}</code></pre>
+                  </div>
+                </section>
+              </div>
+            `
+          },
+          {
+            id: "room-acid-transactions-performance",
+            num: "02",
+            badge: "Performance & ACID",
+            title: "ACID, @Transaction & Tối Ưu Best Performance",
+            desc: "Nguyên lý ACID, Dirty Reads, Bulk Inserts, Partial Entities, Indexing và tối ưu CursorWindow.",
+            content: `
+              <div class="space-y-8">
+                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">Chuyên Đề 02</span>
+                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Concurrency & Tuning</span>
+                  </div>
+                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    ACID, @Transaction & Tối Ưu Hiệu Năng Truy Vấn
+                  </h2>
+                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+                    Bảo toàn tính nhất quán dữ liệu bằng Transaction và các kỹ thuật giúp Room đạt hiệu năng tối đa trên thiết bị di động.
+                  </p>
+                </div>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Nguyên Lý ACID & 3 Trường Hợp Bắt Buộc Dùng Transaction
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <span class="font-bold text-emerald-600 dark:text-emerald-400">Atomicity (Nguyên tử) & Consistency (Nhất quán)</span>
+                      <p class="text-slate-500 dark:text-slate-400">Tất cả lệnh thành công hoặc rollback toàn bộ; schema và khóa ngoại luôn hợp lệ.</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <span class="font-bold text-sky-600 dark:text-sky-400">Isolation (Cô lập) & Durability (Bền bỉ)</span>
+                      <p class="text-slate-500 dark:text-slate-400">Các tác vụ song song không can thiệp nhau; dữ liệu đã commit tồn tại vĩnh viễn dù app crash.</p>
+                    </div>
+                  </div>
+
+                  <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+                    <strong class="text-amber-400 block font-bold">Khi nào bắt buộc dùng Transaction?</strong>
+                    <ul class="list-disc pl-5 space-y-1 leading-relaxed">
+                      <li><strong>Nhiều tác vụ ghi phụ thuộc:</strong> Ví dụ: trừ ví tiền ở Bảng A và ghi lịch sử vào Bảng B. Nếu bước B lỗi, bước A phải rollback ngay.</li>
+                      <li><strong>Thao tác ghi hàng loạt (Bulk Operations):</strong> Khi insert 1.000 dòng, không có Transaction SQLite phải mở/đóng file 1.000 lần. Gộp vào 1 Transaction giúp tăng tốc lên hàng chục lần.</li>
+                      <li><strong>Query quan hệ (@Relation):</strong> Room thực thi ít nhất 2 câu lệnh <code>SELECT</code> độc lập. Phải bọc <code>@Transaction</code> để tránh <strong>Dirty Read</strong> (dữ liệu bảng con bị đổi giữa 2 lần đọc).</li>
+                    </ul>
+                  </div>
+                </section>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Kỹ Thuật Đạt Best Performance Khi Query
+                  </h3>
+                  <div class="space-y-3 text-xs">
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <strong class="text-slate-900 dark:text-white font-bold text-sm">1. Đánh Index chính xác ($O(\\log N)$ vs $O(N)$)</strong>
+                      <p class="text-slate-600 dark:text-slate-300">Đánh <code>@Index</code> cho các cột thường xuyên nằm trong <code>WHERE</code>, <code>JOIN</code>, <code>ORDER BY</code>. <em>Lưu ý Senior:</em> Không đánh index bừa bãi vì làm giảm tốc độ ghi (mỗi lệnh INSERT/UPDATE phải cập nhật lại cây B-Tree index).</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <strong class="text-slate-900 dark:text-white font-bold text-sm">2. Tránh "SELECT *" bằng Partial Entities (Chống nghẽn CursorWindow)</strong>
+                      <p class="text-slate-600 dark:text-slate-300">Bộ đệm <code>CursorWindow</code> của Android chỉ có 2MB. Nếu bảng có 30 cột mà UI danh sách chỉ cần <code>id</code> và <code>title</code>, hãy tạo POJO rút gọn để select: giảm cấp phát RAM và tránh lỗi văng app <code>RowTooBigException</code>.</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <strong class="text-slate-900 dark:text-white font-bold text-sm">3. Phân trang lười qua Paging 3</strong>
+                      <p class="text-slate-600 dark:text-slate-300">Trả về <code>PagingSource&lt;Int, Entity&gt;</code> từ DAO để tải dữ liệu gối đầu từng trang nhỏ thay vì load cả 10.000 items vào RAM cùng lúc.</p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            `
+          },
+          {
+            id: "room-relations-normalization",
+            num: "03",
+            badge: "Database Design",
+            title: "Chuẩn Hóa Quan Hệ 1-N (One-to-Many) Thay Thế JSON",
+            desc: "Foreign Key, CASCADE, B-Tree Indexing trên foreign column, Relation DTO và phòng chống Dirty Reads.",
+            content: `
+              <div class="space-y-8">
+                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-mono font-bold">Chuyên Đề 03</span>
+                    <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Schema Normalization</span>
+                  </div>
+                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Chuẩn Hóa Quan Hệ 1-N (One-to-Many) Thay Cho JSON
+                  </h2>
+                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+                    Lưu danh sách dạng chuỗi JSON khiến truy vấn tìm kiếm <code>WHERE tag = ?</code> rơi vào $O(N)$ (Full Table Scan). Chuẩn hóa sang 2 bảng riêng giúp đạt tốc độ $O(\\log N)$ nhờ B-Tree Index và bảo toàn toàn vẹn dữ liệu.
+                  </p>
+                </div>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Cấu Trúc Entities Kèm Foreign Key & Index
+                  </h3>
+                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
+                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>// Bảng Cha: notes (1)
+@Entity(tableName = "notes")
+data class NoteEntity(
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "note_id") val noteId: Long = 0,
+    val title: String,
+    val content: String
+)
+
+// Bảng Con: tags (N)
+@Entity(
+    tableName = "tags",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["note_id"],
+            childColumns = ["note_id"],
+            onDelete = ForeignKey.CASCADE // Xóa Note tự động xóa sạch các Tags liên quan
+        )
+    ],
+    indices = [
+        Index(value = ["note_id"]),  // Tối ưu truy vấn nối bảng JOIN
+        Index(value = ["tag_name"]) // Tối ưu tìm kiếm theo tag O(log N)
+    ]
+)
+data class TagEntity(
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "tag_id") val tagId: Long = 0,
+    @ColumnInfo(name = "note_id") val noteId: Long,
+    @ColumnInfo(name = "tag_name") val tagName: String
+)</code></pre>
+                  </div>
+                </section>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
+                    DTO Quan Hệ & Bắt Buộc @Transaction Cho Relation
+                  </h3>
+                  <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs">
+                    <pre class="p-4 overflow-x-auto leading-relaxed custom-scroll"><code>data class NoteWithTags(
+    @Embedded val note: NoteEntity,
+    @Relation(
+        parentColumn = "note_id",
+        entityColumn = "note_id"
+    )
+    val tags: List&lt;TagEntity&gt;
+)
+
+@Dao
+interface NoteDao {
+    @Transaction
+    @Query("SELECT * FROM notes")
+    fun getNotesWithTags(): Flow&lt;List&lt;NoteWithTags&gt;&gt;
+
+    @Transaction
+    @Query("""
+        SELECT * FROM notes 
+        INNER JOIN tags ON notes.note_id = tags.note_id 
+        WHERE tags.tag_name = :tagQuery
+    """)
+    fun getNotesByTag(tagQuery: String): Flow&lt;List&lt;NoteWithTags&gt;&gt;
+}</code></pre>
+                  </div>
+                </section>
+              </div>
+            `
+          },
+          {
+            id: "room-concurrency-wal-migration",
+            num: "04",
+            badge: "Senior Internals",
+            title: "WAL Concurrency, InvalidationTracker & Migration Production",
+            desc: "So sánh WAL vs Rollback Journal, Triggers ngầm trong SQLite, cây quyết định 3 chiến lược migration và quy trình 4 bước.",
+            content: `
+              <div class="space-y-8">
+                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">Chuyên Đề 04</span>
+                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Production Ready</span>
+                  </div>
+                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    WAL Mode, InvalidationTracker & Chiến Lược Migration
+                  </h2>
+                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+                    Cơ chế hoạt động đa luồng tầng thấp, SQLite triggers ngầm phát tín hiệu cho Flow và chiến lược di chuyển dữ liệu an toàn trên Production.
+                  </p>
+                </div>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Cơ Chế InvalidationTracker & WAL Concurrency
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <span class="font-bold text-teal-600 dark:text-teal-400">InvalidationTracker Hoạt Động Ra Sao?</span>
+                      <p class="text-slate-500 dark:text-slate-400">Room tạo bảng ngầm <code>room_table_modification_log</code> và gắn triggers (<code>INSERT, UPDATE, DELETE</code>). Khi dữ liệu đổi, tracker trên background thread kiểm tra và kích hoạt re-query cho các luồng <code>Flow</code> đang quan sát.</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                      <span class="font-bold text-emerald-600 dark:text-emerald-400">WAL vs Rollback Journal</span>
+                      <p class="text-slate-500 dark:text-slate-400">Rollback Journal khóa toàn bộ DB khi ghi (Read chặn Write). <strong>WAL Mode (từ Android 9)</strong> ghi nối vào file <code>-wal</code> riêng biệt: cho phép <strong>1 Writer chạy song song với nhiều Reader</strong> mà không gây nghẽn.</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Cây Quyết Định Chọn 1 Trong 3 Chiến Lược Migration
+                  </h3>
+                  <div class="p-4 bg-slate-900 text-slate-200 font-mono text-xs rounded-xl overflow-x-auto leading-relaxed border border-slate-800">
+Schema thay đổi
+   │
+   ├─► App đang dev / Dữ liệu chỉ là cache API tạm thời?
+   │      └──> Dùng DESTRUCTIVE MIGRATION (fallbackToDestructiveMigration)
+   │
+   └─► Dữ liệu người dùng quan trọng trên Production (KHÔNG ĐƯỢC MẤT)?
+          │
+          ├─► Thay đổi đơn giản (thêm cột có default/null, thêm bảng mới)?
+          │      └──> Dùng AUTO MIGRATION (@AutoMigration)
+          │
+          └─► Thay đổi phức tạp (đổi kiểu cột, tách/gộp bảng, di chuyển dữ liệu)?
+                 └──> Dùng MANUAL MIGRATION (Migration(N, N+1))
+                  </div>
+
+                  <div class="space-y-2 text-xs">
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <strong>1. Destructive:</strong> Xóa sạch file DB cũ và tạo lại từ đầu. Toàn bộ dữ liệu user sẽ mất. Chỉ dùng lúc dev hoặc cache tạm.
+                    </div>
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <strong>2. Auto Migration:</strong> Khai báo <code>@AutoMigration(from = 1, to = 2)</code>, Room tự đối chiếu file schema JSON để sinh mã SQL.
+                    </div>
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <strong>3. Manual Migration:</strong> Tự viết SQL thô qua <code>Migration(from, to)</code> cho các thao tác phức tạp mà Auto Migration không xử lý được.
+                    </div>
+                  </div>
+                </section>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold">3</span>
+                    Vì Sao Bắt Buộc Cần Quy Trình Migration An Toàn Trên Production?
+                  </h3>
+                  <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-2 list-disc pl-5 leading-relaxed">
+                    <li><strong>Ngăn ngừa Crash ngay khi mở app:</strong> Nếu tăng version DB mà không có migration path, Room lập tức văng app với <code>IllegalStateException: A migration from X to Y was required but not found</code>.</li>
+                    <li><strong>Bảo vệ dữ liệu người dùng:</strong> Tránh tình trạng người dùng mất sạch dữ liệu offline chỉ vì cập nhật app phiên bản mới.</li>
+                    <li><strong>Xử lý người dùng nhảy cóc phiên bản:</strong> User có thể cập nhật từ v1 lên thẳng v4. Chuỗi <code>Migration(1, 2)</code>, <code>(2, 3)</code>, <code>(3, 4)</code> giúp Room tự động móc nối chạy tuần tự an toàn.</li>
+                  </ul>
+
+                  <div class="p-3.5 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs text-slate-700 dark:text-slate-300">
+                    <strong class="text-purple-700 dark:text-purple-300 font-bold block mb-1">Quy trình 4 bước vượt qua giới hạn của SQLite:</strong>
+                    SQLite không hỗ trợ các lệnh <code>ALTER TABLE</code> phức tạp. Quy trình chuẩn là:
+                    <code>Tạo bảng tạm mới (1) &rarr; Copy dữ liệu từ bảng cũ sang (2) &rarr; Xóa bảng cũ (3) &rarr; Đổi tên bảng tạm thành bảng chính (4)</code>. Sau đó kiểm thử tự động với <code>MigrationTestHelper</code>.
+                  </div>
+                </section>
+              </div>
+            `
+          },
+          {
+            id: "room-clean-architecture",
+            num: "05",
+            badge: "Architecture",
+            title: "Tích Hợp Room Chuẩn Clean Architecture",
+            desc: "Phân tách Domain Model vs Entity, Repository làm Single Source of Truth và Dependency Injection với Hilt.",
+            content: `
+              <div class="space-y-8">
+                <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Chuyên Đề 05</span>
+                    <span class="px-2.5 py-1 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-xs font-mono font-bold">Clean Arch</span>
+                  </div>
+                  <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Tích Hợp Room Chuẩn Clean Architecture
+                  </h2>
+                  <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+                    Tách biệt ranh giới giữa tầng Persistence (Data Layer) và nghiệp vụ thuần túy (Domain Layer) để đảm bảo tính độc lập và khả năng Unit Test.
+                  </p>
+                </div>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xs font-bold">1</span>
+                    Quy Tắc Phân Tách Model: Entity &ne; Domain Model
+                  </h3>
+                  <div class="p-3.5 bg-slate-900 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto">
+[ Domain Layer ]  <--- Pure Kotlin: Note (Business Rules)
+       ▲
+       │ Mappers: NoteEntity.toDomain() / Note.toEntity()
+       ▼
+[ Data Layer ]    <--- Room: NoteEntity (SQLite Storage Rules), DAO, RoomDatabase
+                  </div>
+                  <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-disc pl-5">
+                    <li><strong>Không truyền <code>@Entity</code> lên UI:</strong> Entity phục vụ việc tổ chức bảng trong SQLite; Domain Model phục vụ nghiệp vụ. Đổi schema DB không được làm ảnh hưởng đến Compose UI.</li>
+                    <li><strong>Sử dụng Mapper Extension:</strong> Chuyển đổi 2 chiều giữa <code>Entity</code> và <code>Domain Model</code> ngay tại tầng Data trước khi trả dữ liệu ra bên ngoài.</li>
+                  </ul>
+                </section>
+
+                <section class="space-y-3">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-xs font-bold">2</span>
+                    Repository Là Single Source of Truth (SSOT) & Hilt DI
+                  </h3>
+                  <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <strong>Luồng dữ liệu SSOT:</strong> Remote API &rarr; Lưu vào Room Database &rarr; Phát luồng <code>Flow&lt;List&lt;DomainModel&gt;&gt;</code> từ Room cho ViewModel. UI chỉ quan sát 1 nguồn dữ liệu duy nhất là Local DB.
+                    </div>
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <strong>Dependency Injection (Hilt):</strong> Cung cấp <code>RoomDatabase</code> dưới dạng <code>@Singleton</code>. Chỉ inject trực tiếp các <code>DAO</code> interface vào Repository Implementation; không bao giờ inject thẳng <code>RoomDatabase</code> vào ViewModel hay UseCase.
+                    </div>
                   </div>
                 </section>
               </div>
