@@ -1,231 +1,267 @@
-// js/courses/room-database.js
-window.coursesRepository = window.coursesRepository || [];
+const roomDatabaseSeniorLesson = {
+  id: "room-database-senior",
+  title: "Room Database: Từ Nền Tảng Đến Kiến Trúc Senior",
+  category: "Architecture & Data",
+  description: "Cẩm nang chuyên sâu về SQLite Type Affinity, @TypeConverter, chuẩn hóa quan hệ 1-N, Concurrency WAL, InvalidationTracker, Transaction an toàn, tối ưu Indexing, Migration chuẩn Production và tích hợp Clean Architecture.",
+  content: `
+    <h2>1. Nền Tảng SQLite & Hệ Thống Kiểu Dữ Liệu</h2>
+    <p>Khác với các hệ quản trị CSDL dùng Static Typing (PostgreSQL, MySQL), SQLite hoạt động theo cơ chế <strong>Dynamic Typing thông qua Type Affinity</strong>. Kiểu dữ liệu gắn liền với <em>giá trị thực tế được lưu</em>, không gắn cố định vào định nghĩa cột.</p>
 
-window.coursesRepository.push({
-  id: "room-database-deepdive",
-  title: "Room Database Deep-dive & TypeConverters",
-  category: "Local Storage",
-  icon: "fa-database",
-  color: "from-amber-500 to-rose-600",
-  badge: "Storage",
-  description: "Bản chất Room Annotation Processing (KSP vs KAPT), cơ chế TypeConverter, SQLite Threading Model và Reactive InvalidationTracker.",
-  lessons: [
-    {
-      id: "ksp-vs-kapt-room",
-      num: "01",
-      badge: "Compiler & KSP",
-      title: "KSP vs KAPT: Nút Thắt Stub Generation & Đột Phá Cho Room",
-      desc: "Phân tích vì sao KSP thay thế hoàn toàn KAPT, cơ chế loại bỏ Java Stubs và mã nguồn Room sinh ra bên dưới.",
-      content: `
-        <div class="space-y-8 text-slate-200">
-          <!-- Header Intro -->
-          <div class="border-b border-slate-700/60 pb-5">
-            <h2 class="text-2xl font-bold text-white tracking-tight">KSP vs KAPT: Cuộc Cách Mạng Về Tốc Độ & Mã Sinh Tự Động</h2>
-            <p class="mt-2 text-slate-400 text-sm leading-relaxed">
-              KAPT bản chất là một công cụ "chắp vá" mượn từ Java APT cổ điển, trong khi KSP (Kotlin Symbol Processing) được kiến tạo trực tiếp từ Kotlin Compiler Frontend để phân tích AST.
-            </p>
-          </div>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Kiểu dữ liệu SQLite</th>
+            <th>Bản chất kỹ thuật</th>
+            <th>Ánh xạ Kotlin mặc định</th>
+            <th>Lưu ý thực tế khi thiết kế Schema</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>NULL</code></td>
+            <td>Giá trị rỗng / không tồn tại</td>
+            <td><code>null</code> (<code>String?</code>, <code>Int?</code>)</td>
+            <td>Chiếm ít dung lượng nhất. Trong mệnh đề so sánh: <code>NULL = NULL</code> luôn trả về <code>false</code>.</td>
+          </tr>
+          <tr>
+            <td><code>INTEGER</code></td>
+            <td>Số nguyên có dấu, tự co giãn 1 đến 8 bytes</td>
+            <td><code>Byte</code>, <code>Short</code>, <code>Int</code>, <code>Long</code>, <code>Boolean</code></td>
+            <td>Tiết kiệm bộ nhớ tối đa. Ví dụ số <code>5</code> chỉ tốn 1 byte lưu trữ dù khai báo 64-bit.</td>
+          </tr>
+          <tr>
+            <td><code>REAL</code></td>
+            <td>Số thực 8-byte IEEE floating point</td>
+            <td><code>Float</code>, <code>Double</code></td>
+            <td>Thích hợp cho tọa độ GPS, chỉ số vật lý. <strong>Không dùng lưu tiền tệ</strong> do sai số dấu phẩy động (nên dùng <code>Long</code> cents).</td>
+          </tr>
+          <tr>
+            <td><code>TEXT</code></td>
+            <td>Chuỗi mã hóa UTF-8, UTF-16</td>
+            <td><code>String</code>, <code>Char</code></td>
+            <td>Không cần giới hạn độ dài như <code>VARCHAR(255)</code>. Giới hạn mặc định lên đến 1GB.</td>
+          </tr>
+          <tr>
+            <td><code>BLOB</code></td>
+            <td>Binary Large Object (chuỗi bytes nguyên bản)</td>
+            <td><code>ByteArray</code></td>
+            <td>Lưu vector nhị phân, dữ liệu mã hóa. Tránh lưu ảnh lớn (&gt; 1–2MB) trực tiếp để tránh tràn <code>CursorWindow</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-          <!-- Section 1: Bottleneck of KAPT -->
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-amber-400 flex items-center gap-2">
-              <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
-              1. Nút Thắt Cổ Chai Của KAPT (Java Stub Generation)
-            </h3>
-            <p class="text-slate-300 text-sm leading-relaxed">
-              Để các Annotation Processor viết bằng Java (<code class="text-amber-300 bg-slate-800 px-1.5 py-0.5 rounded">javac APT</code>) có thể phân tích được mã Kotlin, KAPT buộc phải thực hiện bước trung gian tạo ra <strong>Java Stubs</strong>:
-            </p>
+    <hr/>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="p-4 rounded-xl bg-rose-950/20 border border-rose-800/40 space-y-2">
-                <div class="font-semibold text-rose-400 text-sm flex items-center gap-1.5">
-                  <i class="fa-solid fa-xmark"></i> Quy trình KAPT (Cũ & Nặng nề)
-                </div>
-                <ol class="text-xs text-slate-300 space-y-1.5 list-decimal list-inside leading-relaxed">
-                  <li>Trình biên dịch quét toàn bộ code Kotlin để xuất ra các file Java rỗng ruột (Stubs).</li>
-                  <li>Chiếm tới <strong>30% – 50% tổng thời gian compile</strong> chỉ để tạo stub.</li>
-                  <li>APT của Java đọc stubs và sinh file mã nguồn.</li>
-                  <li>Mất thông tin nullability phức tạp và tính năng gốc của Kotlin.</li>
-                </ol>
-              </div>
+    <h2>2. Kiến Trúc Cốt Lõi Của Room</h2>
+    <p>Room là tầng ORM bọc quanh SQLite, loại bỏ mã khung lặp đi lặp lại và kiểm tra xác thực câu lệnh SQL ngay thời điểm biên dịch thông qua KSP.</p>
 
-              <div class="p-4 rounded-xl bg-emerald-950/20 border border-emerald-800/40 space-y-2">
-                <div class="font-semibold text-emerald-400 text-sm flex items-center gap-1.5">
-                  <i class="fa-solid fa-check"></i> Quy trình KSP (Hiện Đại & Trực Tiếp)
-                </div>
-                <ol class="text-xs text-slate-300 space-y-1.5 list-decimal list-inside leading-relaxed">
-                  <li>Tích hợp trực tiếp vào <strong>Kotlin Compiler Frontend</strong>.</li>
-                  <li>Đọc trực tiếp Kotlin AST (Abstract Syntax Tree) và Symbol mà <strong>không tạo Stub</strong>.</li>
-                  <li>Tốc độ build nhanh hơn <strong>2x – 4x</strong>, tối ưu hóa Incremental Build vượt trội.</li>
-                  <li>Hỗ trợ gốc Kotlin Multiplatform (Room KMP trên Android, iOS, Desktop).</li>
-                </ol>
-              </div>
-            </div>
-          </div>
+    <ul>
+      <li><strong><code>@Entity</code> (Data Model):</strong> Định nghĩa bảng trong SQLite. Mỗi instance đại diện cho một bản ghi (row). Hỗ trợ <code>@PrimaryKey(autoGenerate = true)</code>, <code>@ColumnInfo(name = "...")</code> và <code>@Ignore</code>.</li>
+      <li><strong><code>@Dao</code> (Data Access Object):</strong> Interface định nghĩa các truy vấn CRUD (<code>@Insert</code>, <code>@Update</code>, <code>@Delete</code>, <code>@Query</code>). Mọi thao tác I/O thông thường bắt buộc là <code>suspend fun</code> chạy trên background thread.</li>
+      <li><strong><code>@Database</code>:</strong> Abstract class kế thừa <code>RoomDatabase</code>, giữ kết nối database, quản lý version và migration.</li>
+    </ul>
 
-          <!-- Section 2: Code Gen Under The Hood -->
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2">
-              <i class="fa-solid fa-code-branch text-emerald-500"></i>
-              2. KSP Sinh Gì Dưới Mui Xe Cho Room?
-            </h3>
-            <p class="text-slate-300 text-sm leading-relaxed">
-              Khi build project, Room KSP Processor (<code class="text-amber-300 bg-slate-800 px-1.5 py-0.5 rounded">androidx.room:room-compiler</code>) tạo ra các class thuần thực thi interface và abstract class:
-            </p>
+    <hr/>
 
-            <div class="space-y-3">
-              <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="text-amber-400 font-medium text-sm mb-1 font-mono">AppDatabase_Impl.kt</div>
-                <p class="text-xs text-slate-300 leading-relaxed">
-                  Kế thừa abstract database của bạn, override <code class="text-rose-300">createOpenHelper()</code> chứa <code class="text-rose-300">RoomOpenHelper.Delegate</code> để quản lý lifecycle (tạo bảng <code class="text-sky-300">CREATE TABLE IF NOT EXISTS</code>, migration, và kiểm tra schema hash tại <code class="text-sky-300">room_master_table</code>).
-                </p>
-              </div>
+    <h2>3. Chuyển Đổi Dữ Liệu Với @TypeConverter</h2>
+    <p>Bản chất của <code>@TypeConverter</code> không chỉ giới hạn ở <code>String &harr; TEXT</code>, mà là cung cấp cặp hàm 2 chiều để chuyển đổi một kiểu dữ liệu Kotlin phức tạp thành một trong 5 kiểu SQLite hiểu được (<code>NULL</code>, <code>INTEGER</code>, <code>REAL</code>, <code>TEXT</code>, <code>BLOB</code>) và ngược lại.</p>
 
-              <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <div class="text-amber-400 font-medium text-sm mb-1 font-mono">UserDao_Impl.kt</div>
-                <p class="text-xs text-slate-300 leading-relaxed">
-                  Chuyển đổi các câu SQL trong <code class="text-rose-300">@Query</code> thành đối tượng <code class="text-rose-300">RoomSQLiteQuery</code>. Với các hàm write, KSP sinh ra các anonymous instance của <code class="text-rose-300">EntityInsertionAdapter</code> để bind trực tiếp các field vào SQLite statement primitives (<code class="text-sky-300">stmt.bindString</code>, <code class="text-sky-300">stmt.bindLong</code>).
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      `
-    },
-    {
-      id: "room-typeconverters-internals",
-      num: "02",
-      badge: "Data Mapping",
-      title: "TypeConverters: Cơ Chế Mapping 2 Chiều & Granular Scoping",
-      desc: "Nguyên lý cầu nối giữa kiểu dữ liệu phức tạp của Kotlin và 5 kiểu gốc của SQLite, cùng cơ chế @ProvidedTypeConverter với DI.",
-      content: `
-        <div class="space-y-8 text-slate-200">
-          <div class="border-b border-slate-700/60 pb-5">
-            <h2 class="text-2xl font-bold text-white tracking-tight">TypeConverters: Cầu Nối Giữa Kotlin & Primitive SQLite</h2>
-            <p class="mt-2 text-slate-400 text-sm leading-relaxed">
-              SQLite chỉ hỗ trợ đúng 5 storage classes: <code>NULL</code>, <code>INTEGER</code>, <code>REAL</code>, <code>TEXT</code>, <code>BLOB</code>. Bất kỳ cấu trúc dữ liệu nào khác đều phải thông qua TypeConverter.
-            </p>
-          </div>
+    <pre><code class="language-kotlin">import androidx.room.TypeConverter
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.time.Instant
 
-          <!-- Section: Scope Hierarchy -->
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-sky-400 flex items-center gap-2">
-              <i class="fa-solid fa-layer-group text-sky-500"></i>
-              1. Thứ Bậc Áp Dụng (Granular Scoping)
-            </h3>
-            <p class="text-slate-300 text-sm leading-relaxed">
-              Room giải quyết converter theo cơ chế phạm vi từ hẹp đến rộng. Bạn nên đặt converter ở phạm vi hẹp nhất có thể:
-            </p>
+class AppTypeConverters {
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl">
-                <span class="text-xs uppercase font-semibold text-emerald-400 tracking-wider">Field Scope</span>
-                <p class="text-xs text-slate-300 mt-1">Chỉ áp dụng chuyển đổi duy nhất cho thuộc tính được gắn annotation.</p>
-              </div>
-              <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl">
-                <span class="text-xs uppercase font-semibold text-sky-400 tracking-wider">Entity Scope</span>
-                <p class="text-xs text-slate-300 mt-1">Áp dụng cho mọi trường dữ liệu nằm trong toàn bộ Entity đó.</p>
-              </div>
-              <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl">
-                <span class="text-xs uppercase font-semibold text-amber-400 tracking-wider">DAO Scope</span>
-                <p class="text-xs text-slate-300 mt-1">Áp dụng cho các tham số truyền vào và kết quả trả về của các query trong DAO.</p>
-              </div>
-              <div class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl">
-                <span class="text-xs uppercase font-semibold text-rose-400 tracking-wider">Database Scope</span>
-                <p class="text-xs text-slate-300 mt-1">Phạm vi toàn cục: Mọi Entity và DAO trực thuộc Database đều kế thừa.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section: ProvidedTypeConverter -->
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2">
-              <i class="fa-solid fa-wand-magic-sparkles text-emerald-500"></i>
-              2. Static TypeConverter vs @ProvidedTypeConverter (Dagger/Hilt)
-            </h3>
-            <p class="text-slate-300 text-sm leading-relaxed">
-              Mặc định Room tự khởi tạo converter bằng constructor không tham số (<code class="text-amber-300">Converters()</code>). Khi bạn cần inject dependency bên ngoài (như Moshi instance hoặc Json serializer đã cấu hình sẵn qua Hilt):
-            </p>
-
-            <div class="p-4 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
-              <div class="text-xs font-mono text-slate-400">// Đánh dấu converter cần dependency</div>
-              <pre class="text-xs text-amber-300 font-mono overflow-x-auto leading-relaxed"><code>@ProvidedTypeConverter
-class JsonConverters @Inject constructor(private val json: Json) {
+    // 1. Instant <-> Long (INTEGER)
     @TypeConverter
-    fun fromMetadata(value: String): Metadata = json.decodeFromString(value)
+    fun fromInstant(instant: Instant?): Long? = instant?.toEpochMilli()
 
     @TypeConverter
-    fun toMetadata(meta: Metadata): String = json.encodeToString(meta)
-}</code></pre>
-              <p class="text-xs text-slate-400 pt-2 border-t border-slate-800">
-                Sau đó, truyền instance này vào Room Builder: <code class="text-sky-300">Room.databaseBuilder(...).addTypeConverter(jsonConverters).build()</code>
-              </p>
-            </div>
-          </div>
-        </div>
-      `
-    },
-    {
-      id: "room-sqlite-threading-flow",
-      num: "03",
-      badge: "Threading & Invalidation",
-      title: "SQLite Threading, WAL Mode & InvalidationTracker",
-      desc: "Bản chất file-locking, chế độ Write-Ahead Logging (WAL) và cách Flow tự động phát hiện thay đổi dữ liệu.",
-      content: `
-        <div class="space-y-8 text-slate-200">
-          <div class="border-b border-slate-700/60 pb-5">
-            <h2 class="text-2xl font-bold text-white tracking-tight">SQLite Threading Internals & InvalidationTracker</h2>
-            <p class="mt-2 text-slate-400 text-sm leading-relaxed">
-              SQLite bản chất là file-based engine. Hiểu rõ cách Room điều phối luồng và lắng nghe trigger thay đổi dữ liệu giúp tránh nghẽn thread và deadlock.
-            </p>
-          </div>
+    fun toInstant(millis: Long?): Instant? = millis?.let { Instant.ofEpochMilli(it) }
 
-          <!-- Section: WAL Mode -->
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-rose-400 flex items-center gap-2">
-              <i class="fa-solid fa-bolt text-rose-500"></i>
-              1. WAL Mode (Write-Ahead Logging) vs Rollback Journal
-            </h3>
-            <p class="text-slate-300 text-sm leading-relaxed">
-              Mặc định từ Android 9+, Room kích hoạt <strong>WAL mode</strong>. Khác với Rollback Journal (khóa toàn bộ database khi ghi), WAL cho phép:
-            </p>
-            <div class="p-4 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-300 space-y-2">
-              <div class="flex items-center gap-2 text-emerald-400 font-semibold">
-                <i class="fa-solid fa-arrows-split-up-and-left"></i> 1 Writer chạy đồng thời với nhiều Reader
-              </div>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Các thao tác ghi được ghi nối đuôi vào file phụ <code class="text-amber-300">&lt;database-name&gt;-wal</code>. Các luồng đọc vẫn đọc snapshot an toàn từ file chính mà không bị chặn lại. Dữ liệu sau đó được gộp về file chính qua tiến trình Checkpoint.
-              </p>
-            </div>
-          </div>
+    // 2. List&lt;String&gt; <-> JSON String (TEXT)
+    @TypeConverter
+    fun fromStringList(tags: List&lt;String&gt;?): String? = tags?.let { Json.encodeToString(it) }
 
-          <!-- Section: InvalidationTracker -->
-          <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-amber-400 flex items-center gap-2">
-              <i class="fa-solid fa-rotate text-amber-500"></i>
-              2. Cơ Chế InvalidationTracker Thổi Dữ Liệu Lên Flow
-            </h3>
-            <p class="text-slate-300 text-sm leading-relaxed">
-              Khi bạn khai báo DAO trả về <code class="text-sky-300 bg-slate-800 px-1.5 py-0.5 rounded">Flow&lt;List&lt;User&gt;&gt;</code>, Room vận hành theo chu trình 3 bước:
-            </p>
+    @TypeConverter
+    fun toStringList(jsonString: String?): List&lt;String&gt;? = 
+        jsonString?.let { Json.decodeFromString&lt;List&lt;String&gt;&gt;(it) }
+}
+</code></pre>
 
-            <ol class="space-y-3 text-xs text-slate-300">
-              <li class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
-                <strong class="text-white block mb-1">1. Đăng ký quan sát bảng:</strong>
-                <code class="text-rose-300">InvalidationTracker</code> tạo bảng phụ tạm thời và gắn triggers theo dõi các bảng mục tiêu để phát hiện các lệnh <code class="text-amber-300">INSERT/UPDATE/DELETE</code>.
-              </li>
-              <li class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
-                <strong class="text-white block mb-1">2. Đánh dấu bảng "Dirty":</strong>
-                Khi có write transaction commit thành công, cờ trạng thái của bảng được đánh dấu là thay đổi (dirty).
-              </li>
-              <li class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
-                <strong class="text-white block mb-1">3. Tự động re-query & emit:</strong>
-                Tracker phát tín hiệu qua background dispatcher của Room, thực hiện re-query câu lệnh SELECT và phát giá trị mới nhất qua coroutine <code class="text-sky-300">Flow</code> cho UI layer.
-              </li>
-            </ol>
-          </div>
-        </div>
-      `
+    <p>Đăng ký cấp Database để áp dụng toàn cục:</p>
+    <pre><code class="language-kotlin">@Database(entities = [NoteEntity::class], version = 1, exportSchema = true)
+@TypeConverters(AppTypeConverters::class)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun noteDao(): NoteDao
+}
+</code></pre>
+
+    <hr/>
+
+    <h2>4. Chuẩn Hóa Dữ Liệu: Quan Hệ 1-N (One-to-Many) Thay Thế JSON</h2>
+    <p>Lưu danh sách dạng chuỗi JSON khiến truy vấn tìm kiếm <code>WHERE tag = ?</code> rơi vào $O(N)$ (Full Table Scan). Chuẩn hóa sang quan hệ 1-N giúp đạt tốc độ truy vấn $O(\\log N)$ nhờ B-Tree Index và đảm bảo toàn vẹn dữ liệu.</p>
+
+    <pre><code class="language-kotlin">// Bảng Cha: notes (1)
+@Entity(tableName = "notes")
+data class NoteEntity(
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "note_id")
+    val noteId: Long = 0,
+    val title: String,
+    val content: String
+)
+
+// Bảng Con: tags (N)
+@Entity(
+    tableName = "tags",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["note_id"],
+            childColumns = ["note_id"],
+            onDelete = ForeignKey.CASCADE // Xóa Note -> Tự xóa hết Tag liên quan
+        )
+    ],
+    indices = [
+        Index(value = ["note_id"]),  // Tối ưu JOIN
+        Index(value = ["tag_name"]) // Tối ưu tìm kiếm theo tên tag
+    ]
+)
+data class TagEntity(
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "tag_id")
+    val tagId: Long = 0,
+    @ColumnInfo(name = "note_id")
+    val noteId: Long,
+    @ColumnInfo(name = "tag_name")
+    val tagName: String
+)
+</code></pre>
+
+    <p>Tạo DTO trung gian và DAO với <code>@Transaction</code>:</p>
+    <pre><code class="language-kotlin">data class NoteWithTags(
+    @Embedded val note: NoteEntity,
+    @Relation(
+        parentColumn = "note_id",
+        entityColumn = "note_id"
+    )
+    val tags: List&lt;TagEntity&gt;
+)
+
+@Dao
+interface NoteDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNote(note: NoteEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTags(tags: List&lt;TagEntity&gt;)
+
+    @Transaction
+    suspend fun insertNoteWithTags(note: NoteEntity, tags: List&lt;String&gt;) {
+        val noteId = insertNote(note)
+        val tagEntities = tags.map { TagEntity(noteId = noteId, tagName = it) }
+        insertTags(tagEntities)
     }
-  ]
-});
+
+    // Luôn cần @Transaction khi query Relation để tránh Dirty Read
+    @Transaction
+    @Query("SELECT * FROM notes")
+    fun getNotesWithTags(): Flow&lt;List&lt;NoteWithTags&gt;&gt;
+
+    @Transaction
+    @Query("""
+        SELECT * FROM notes 
+        INNER JOIN tags ON notes.note_id = tags.note_id 
+        WHERE tags.tag_name = :tagQuery
+    """)
+    fun getNotesByTag(tagQuery: String): Flow&lt;List&lt;NoteWithTags&gt;&gt;
+}
+</code></pre>
+
+    <hr/>
+
+    <h2>5. Concurrency & Quản Lý Dữ Liệu Tầng Thấp</h2>
+    <ul>
+      <li><strong>Cơ chế InvalidationTracker:</strong> Room tạo bảng ngầm <code>room_table_modification_log</code> và gắn triggers (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>) lên các bảng quan sát. Khi dữ liệu đổi, tracker trên background thread phát hiện cờ và kích hoạt re-query cho các luồng <code>Flow&lt;T&gt;</code>.</li>
+      <li><strong>WAL (Write-Ahead Logging) vs Rollback Journal:</strong>
+        <ul>
+          <li><em>Rollback Journal:</em> Tạo bản sao trang dữ liệu cũ vào journal file khi ghi. Khóa toàn bộ database (Read chặn Write, Write chặn Read).</li>
+          <li><em>WAL Mode (Mặc định từ Android 9):</em> Thao tác ghi được nối vào file <code>-wal</code> riêng biệt. Cho phép <strong>1 Writer hoạt động song song với nhiều Reader</strong> mà không gây nghẽn.</li>
+        </ul>
+      </li>
+      <li><strong>ACID & Transactions:</strong>
+        <ul>
+          <li>Đảm bảo tính Nguyên tử (Atomicity), Nhất quán (Consistency), Cô lập (Isolation) và Bền bỉ (Durability).</li>
+          <li>Sử dụng khi cập nhật nhiều bảng liên quan, xử lý batch insert hàng loạt để tăng tốc ghi, và bọc các truy vấn <code>@Relation</code>.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <hr/>
+
+    <h2>6. Tối Ưu Hiệu Năng Truy Vấn (Performance Tuning)</h2>
+    <ol>
+      <li><strong>Đánh Index có chọn lọc:</strong> Thêm <code>indices = [Index(value = ["col_name"])]</code> cho các cột hay dùng trong <code>WHERE</code>, <code>JOIN</code>, <code>ORDER BY</code>. Tránh đánh dư thừa vì sẽ làm chậm các lệnh ghi (phải cập nhật lại cây B-Tree).</li>
+      <li><strong>Tránh <code>SELECT *</code> bằng Partial Entities:</strong> Chỉ select những cột cần hiển thị trên UI vào một data class riêng để giảm dung lượng tải qua <code>CursorWindow</code> (giới hạn 2MB).</li>
+      <li><strong>Tận dụng Paging 3:</strong> Trả về <code>PagingSource&lt;Int, Entity&gt;</code> từ DAO để tải dữ liệu theo từng trang nhỏ thay vì load hàng ngàn items vào RAM.</li>
+    </ol>
+
+    <hr/>
+
+    <h2>7. Chiến Lược Database Migration Chuẩn Production</h2>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Chiến lược</th>
+            <th>Cơ chế</th>
+            <th>Trường hợp áp dụng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Destructive Migration</strong></td>
+            <td>Xóa sạch file database cũ và tạo lại từ đầu.</td>
+            <td>Giai đoạn dev, testing hoặc dữ liệu chỉ là cache tạm từ API.</td>
+          </tr>
+          <tr>
+            <td><strong>Auto Migration</strong></td>
+            <td>Dùng <code>@AutoMigration</code>, Room đối chiếu file schema JSON để tự sinh script.</td>
+            <td>Thêm bảng mới, thêm cột có giá trị mặc định hoặc cho phép null.</td>
+          </tr>
+          <tr>
+            <td><strong>Manual Migration</strong></td>
+            <td>Tự viết SQL thô qua <code>Migration(from, to)</code>.</td>
+            <td>Đổi kiểu cột, tách/gộp bảng, di chuyển dữ liệu phức tạp.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Quy trình 4 bước an toàn trên Production:</h4>
+    <ol>
+      <li><strong>Export Schema:</strong> Bật <code>room.schemaLocation</code> trong Gradle để kiểm soát lịch sử schema qua file JSON.</li>
+      <li><strong>Xử lý giới hạn SQLite (Migration 4 bước):</strong> Tạo bảng tạm mới &rarr; Chép dữ liệu từ bảng cũ sang &rarr; Xóa bảng cũ &rarr; Đổi tên bảng tạm thành bảng chính.</li>
+      <li><strong>Hỗ trợ nhảy cóc phiên bản:</strong> Định nghĩa chuỗi migration tuần tự (<code>1 -> 2</code>, <code>2 -> 3</code>) để người dùng cập nhật từ bản bất kỳ không bị crash <code>IllegalStateException</code>.</li>
+      <li><strong>Kiểm thử tự động:</strong> Sử dụng <code>MigrationTestHelper</code> để kiểm tra tính toàn vẹn của dữ liệu trước khi phát hành.</li>
+    </ol>
+
+    <hr/>
+
+    <h2>8. Tích Hợp Chuẩn Clean Architecture</h2>
+    <ul>
+      <li><strong>Phân tách Model:</strong> Không truyền trực tiếp <code>@Entity</code> lên Domain Layer hoặc Compose UI. Luôn dùng mapper (<code>Entity.toDomain()</code>) chuyển đổi sang Domain Model.</li>
+      <li><strong>Single Source of Truth (SSOT):</strong> Repository điều phối: Kéo dữ liệu từ API &rarr; Lưu vào Room Database &rarr; Phát luồng <code>Flow&lt;DomainModel&gt;</code> từ Room lên ViewModel.</li>
+      <li><strong>Dependency Injection:</strong> Cung cấp <code>RoomDatabase</code> dưới dạng <code>@Singleton</code> bằng Hilt, chỉ inject interface DAO vào Repository Implementation.</li>
+    </ul>
+  `
+};
+
+// Đăng ký bài học vào danh sách toàn cục nếu có
+if (typeof lessons !== "undefined" && Array.isArray(lessons)) {
+  lessons.unshift(roomDatabaseSeniorLesson);
+}
