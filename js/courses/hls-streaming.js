@@ -1,14 +1,11 @@
-// js/courses/hls-streaming.js
-window.coursesRepository = window.coursesRepository || [];
-
-window.coursesRepository.push({
+export const hlsStreamingCourse = {
   id: "hls-streaming-deep-dive",
-  title: "HTTP Live Streaming (HLS) Deep Dive",
+  title: "HTTP Live Streaming (HLS) & Video Processing",
   category: "Media & Streaming",
   icon: "fa-video",
-  color: "from-amber-500 to-rose-600",
+  color: "from-purple-500 to-indigo-600",
   badge: "Streaming",
-  description: "Giải phẫu toàn diện giao thức Apple HLS: Cơ chế cắt lát I-Frame, phân tích .ts vs .m4s (fMP4), đột phá giảm trễ LL-HLS, nghệ thuật Playlist (VOD/Live/DVR, Demuxed Streams, SSAI Discontinuity) và DRM phần cứng.",
+  description: "Giải phẫu toàn diện giao thức Apple HLS (I-Frame, .ts vs .m4s, LL-HLS, Playlist VOD/Live/DVR, SSAI, DRM phần cứng) và áp dụng trên Android với Media3 ExoPlayer (ABR) & Transformer (Trimming, Compression).",
   lessons: [
     {
       id: "hls-architecture-segmentation",
@@ -255,6 +252,100 @@ window.coursesRepository.push({
           </section>
         </div>
       `
+    },
+    {
+      id: "hls-abr-exoplayer",
+      num: "04",
+      badge: "Media3",
+      title: "HLS Trên Android: Media3 ExoPlayer & Adaptive Bitrate",
+      desc: "Cách ExoPlayer parse Master Playlist (.m3u8), Chunklist và tự động điều chuyển chất lượng mạng với TrackSelection.",
+      content: `
+        <div class="space-y-8">
+          <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Chuyên Đề 04</span>
+              <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Android Media3 Playback</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              HLS Trên Android: Media3 ExoPlayer & Adaptive Bitrate
+            </h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+              Cơ chế phát luồng HTTP Live Streaming và tối ưu hóa Playback trên Android Media3.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 space-y-3">
+            <h3 class="font-bold text-purple-600 dark:text-purple-400 text-base flex items-center gap-2">
+              <i class="fa-solid fa-layer-group"></i> Master Playlist (.m3u8) & Media Segments
+            </h3>
+            <p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+              HLS chia nhỏ video thành các đoạn ngắn (MPEG-TS hoặc fMP4, thường từ 2 - 6 giây). Master Playlist đóng vai trò chỉ mục chứa danh sách các variant stream tương ứng với từng độ phân giải và bitrate khác nhau.
+            </p>
+            <pre class="p-3 rounded-lg bg-slate-900 text-slate-200 text-xs overflow-x-auto"><code>// Khởi tạo HlsMediaSource với AndroidX Media3
+val mediaItem = MediaItem.fromUri("https://example.com/live/master.m3u8")
+val mediaSource = HlsMediaSource.Factory(defaultDataSourceFactory)
+    .setAllowChunklessPreparation(true)
+    .createMediaSource(mediaItem)
+
+player.setMediaSource(mediaSource)
+player.prepare()</code></pre>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 space-y-3">
+            <h3 class="font-bold text-indigo-600 dark:text-indigo-400 text-base">Adaptive Bitrate (ABR) Selection</h3>
+            <p class="text-slate-700 dark:text-slate-300 text-sm">
+              ExoPlayer liên tục đo đạc thông lượng mạng (BandwidthMeter) theo thời gian thực để chủ động switch giữa các variant playlist mà không gây giật/lag (buffering).
+            </p>
+          </div>
+        </div>
+      `
+    },
+    {
+      id: "media3-transformer-compress",
+      num: "05",
+      badge: "Transformer",
+      title: "Video Trimming & Bitrate Compression",
+      desc: "Sử dụng AndroidX Media3 Transformer thay thế FFmpeg để cắt ghép video, chỉnh bitrate và trích xuất frame tối ưu hiệu năng.",
+      content: `
+        <div class="space-y-8">
+          <div class="border-b border-slate-200 dark:border-slate-800 pb-6">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold">Chuyên Đề 05</span>
+              <span class="px-2.5 py-1 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-mono font-bold">Video Processing</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Video Trimming & Bitrate Compression
+            </h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+              Xử lý media native hiệu năng cao bằng Media3 Transformer API.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 space-y-3">
+            <h3 class="font-bold text-purple-600 dark:text-purple-400 text-base flex items-center gap-2">
+              <i class="fa-solid fa-scissors"></i> Chuyển đổi từ FFmpeg sang Media3 Transformer
+            </h3>
+            <p class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+              Khác với FFmpeg sử dụng thông số <code>crf</code> (Constant Rate Factor), Media3 Transformer quản lý chất lượng qua việc đặt <code>target bitrate</code> cố định hoặc tùy chỉnh Encoder Factory.
+            </p>
+            <pre class="p-3 rounded-lg bg-slate-900 text-slate-200 text-xs overflow-x-auto"><code>// Cắt đoạn video (Trimming) & Export
+val editedMediaItem = EditedMediaItem.Builder(MediaItem.fromUri(videoUri))
+    .setRemoveAudio(false)
+    .build()
+
+val transformer = Transformer.Builder(context)
+    .setVideoMimeType(MimeTypes.VIDEO_H264)
+    .addListener(object : Transformer.Listener {
+        override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+            // Processing done
+        }
+    })
+    .build()
+
+transformer.start(editedMediaItem, outputPath)</code></pre>
+          </div>
+        </div>
+      `
     }
   ]
-});
+};

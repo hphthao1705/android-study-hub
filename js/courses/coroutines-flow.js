@@ -1,7 +1,4 @@
-// js/courses/coroutines-flow.js
-window.coursesRepository = window.coursesRepository || [];
-
-window.coursesRepository.push({
+export const coroutinesCourse = {
   id: "coroutines-flow-core",
   title: "Coroutines & Flow Core Mechanics",
   category: "Concurrency",
@@ -587,4 +584,4 @@ public final Object invokeSuspend(Object result) {
       `
     }
   ]
-});
+};

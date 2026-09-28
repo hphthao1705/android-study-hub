@@ -1,9 +1,12 @@
-const roomDatabaseSeniorLesson = {
-  id: "room-database-senior",
+export const roomSeniorGuideLesson = {
+  id: "room-senior-guide",
+  num: "01",
+  badge: "Architecture & Data",
   title: "Room Database: Từ Nền Tảng Đến Kiến Trúc Senior",
-  category: "Architecture & Data",
-  description: "Cẩm nang chuyên sâu về SQLite Type Affinity, @TypeConverter, chuẩn hóa quan hệ 1-N, Concurrency WAL, InvalidationTracker, Transaction an toàn, tối ưu Indexing, Migration chuẩn Production và tích hợp Clean Architecture.",
+  desc: "Cẩm nang chuyên sâu về SQLite Type Affinity, @TypeConverter, chuẩn hóa quan hệ 1-N, Concurrency WAL, InvalidationTracker, Transaction an toàn, tối ưu Indexing, Migration chuẩn Production và tích hợp Clean Architecture.",
   content: `
+  <div class="lesson-prose">
+    <h1>Room Database: Từ Nền Tảng Đến Kiến Trúc Senior</h1>
     <h2>1. Nền Tảng SQLite & Hệ Thống Kiểu Dữ Liệu</h2>
     <p>Khác với các hệ quản trị CSDL dùng Static Typing (PostgreSQL, MySQL), SQLite hoạt động theo cơ chế <strong>Dynamic Typing thông qua Type Affinity</strong>. Kiểu dữ liệu gắn liền với <em>giá trị thực tế được lưu</em>, không gắn cố định vào định nghĩa cột.</p>
 
@@ -258,10 +261,6 @@ interface NoteDao {
       <li><strong>Single Source of Truth (SSOT):</strong> Repository điều phối: Kéo dữ liệu từ API &rarr; Lưu vào Room Database &rarr; Phát luồng <code>Flow&lt;DomainModel&gt;</code> từ Room lên ViewModel.</li>
       <li><strong>Dependency Injection:</strong> Cung cấp <code>RoomDatabase</code> dưới dạng <code>@Singleton</code> bằng Hilt, chỉ inject interface DAO vào Repository Implementation.</li>
     </ul>
+  </div>
   `
 };
-
-// Đăng ký bài học vào danh sách toàn cục nếu có
-if (typeof lessons !== "undefined" && Array.isArray(lessons)) {
-  lessons.unshift(roomDatabaseSeniorLesson);
-}
