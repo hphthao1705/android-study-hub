@@ -45,8 +45,8 @@ export function renderHomeView() {
   const grid = document.getElementById("courses-grid");
   if (!grid) return;
 
-  const filteredCourses = coursesRepository.filter(c => 
-    c.title.toLowerCase().includes(searchQuery) || 
+  const filteredCourses = coursesRepository.filter(c =>
+    c.title.toLowerCase().includes(searchQuery) ||
     c.description.toLowerCase().includes(searchQuery) ||
     c.category.toLowerCase().includes(searchQuery)
   );
@@ -130,7 +130,10 @@ export function toggleTheme() {
 
 export function toggleSidebarMobile() {
   const sidebar = document.getElementById("course-sidebar");
-  if (sidebar) sidebar.classList.toggle("-translate-x-full");
+  if (!sidebar) return;
+
+// Toggle thu gọn độ rộng về 0
+  sidebar.classList.toggle("-ml-80");
 }
 
 // Bind các hàm điều hướng vào object window.app để gọi trực tiếp từ onclick trong HTML string
