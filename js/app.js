@@ -28,9 +28,10 @@ function setupEventListeners() {
     themeBtn.addEventListener("click", toggleTheme);
   }
 
-  const sidebarMobileBtn = document.getElementById("mobile-sidebar-toggle");
-  if (sidebarMobileBtn) {
-    sidebarMobileBtn.addEventListener("click", toggleSidebarMobile);
+  // Lắng nghe nút 3 gạch ở Header
+  const toggleBtn = document.getElementById("toggle-sidebar-btn") || document.getElementById("mobile-sidebar-toggle");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", toggleSidebar);
   }
 }
 
@@ -128,21 +129,26 @@ export function toggleTheme() {
   document.documentElement.classList.toggle("dark");
 }
 
-export function toggleSidebarMobile() {
+export function toggleSidebar() {
   const sidebar = document.getElementById("course-sidebar");
   if (!sidebar) return;
 
-// Toggle thu gọn độ rộng về 0
+  // Toggle thu gọn sidebar bằng margin âm hoặc hidden
   sidebar.classList.toggle("-ml-80");
 }
 
-// Bind các hàm điều hướng vào object window.app để gọi trực tiếp từ onclick trong HTML string
+// Bind các hàm điều hướng vào object window.app
 window.app = {
   openCourse,
   selectLesson,
   navigateToHome,
   toggleTheme,
-  toggleSidebarMobile
+  toggleSidebar
 };
 
-document.addEventListener("DOMContentLoaded", initApp);
+// Khởi chạy khi DOM sẵn sàng
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
