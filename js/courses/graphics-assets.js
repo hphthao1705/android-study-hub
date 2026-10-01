@@ -30,7 +30,7 @@ export const graphicsAssetsCourse = {
   icon: "fa-image",
   color: "from-pink-500 to-orange-500",
   badge: "Best Practice",
-  description: "Quy tắc chọn Vector vs Raster, xử lý hình theo độ chi tiết, Density Buckets & quản lý bộ nhớ Bitmap, và kỹ thuật Gradient Scrim đảm bảo tương phản trong Jetpack Compose.",
+  description: "Quy tắc chọn Vector vs Raster, xử lý hình theo độ chi tiết, Density Buckets & quản lý bộ nhớ Bitmap, và quy chuẩn xuất ảnh Feed/Story cho Facebook & Instagram.",
   lessons: [
     {
       id: "asset-selection-rules",
@@ -214,75 +214,163 @@ Icon(
       `
     },
     {
-      id: "contrast-scrim-overlay",
+      id: "social-export-feed-story",
       num: "04",
-      badge: "UI/UX",
-      title: "Tương Phản Hình Ảnh: Gradient Scrim & Overlay",
-      desc: "Bắt buộc dùng Top/Bottom Gradient Scrim hoặc chip background khi đặt text/logo sáng lên ảnh do user chọn; vẽ bằng drawWithCache.",
+      badge: "Social Export",
+      title: "Xuất Ảnh Đăng Facebook & Instagram: Feed vs Story",
+      desc: "Story 9:16 dùng canvas nền đen để tránh gradient tự động của Meta; Feed giữ 1:1 chuẩn 1080×1080.",
       content: `
         <div class="space-y-8">
-          ${header("04", "Contrast & Overlay", "Tương Phản Hình Ảnh: Gradient Scrim & Overlay", "Đảm bảo text và logo luôn đọc được trên mọi ảnh nền, kể cả ảnh user tự chụp.")}
+          ${header("04", "Social Export", "Xuất Ảnh Đăng Facebook & Instagram: Feed vs Story", "Chủ động kiểm soát tỉ lệ và nền ảnh khi share, thay vì để Meta tự xử lý và làm lộ góc bo.")}
 
           <section class="space-y-4">
-            ${sectionTitle(1, "Quy tắc bắt buộc")}
+            ${sectionTitle(1, "Bối cảnh & vấn đề")}
             <div class="${card}">
-              <p class="${text}">Khi hiển thị Text / Branding Logo màu sáng (ví dụ chữ trắng) đè lên ảnh nền do user chụp/chọn:</p>
+              <p class="${text}">Story (Facebook / Instagram) có tỉ lệ chuẩn <strong>9:16</strong>, thường là <code class="${inlineCode}">1080 × 1920 px</code>.</p>
               <ul class="list-disc pl-5 space-y-1.5 ${text}">
-                <li><strong>BẮT BUỘC</strong> thêm một dải màu dốc đen mờ (<strong>Top/Bottom Gradient Scrim</strong>) hoặc background container (<code class="${inlineCode}">chipBgColor</code>) phía sau.</li>
-                <li><strong>Lý do:</strong> Nếu user chọn ảnh nền màu trắng, text/logo trắng sẽ bị chìm hoàn toàn.</li>
+                <li>Khi đăng thẳng ảnh vuông (<strong>1:1</strong>) hoặc ảnh sai tỉ lệ lên Story, Meta tự phân tích màu ảnh rồi chèn <strong>gradient background</strong> vào phần trống.</li>
+                <li>Nếu ảnh có <strong>bo góc</strong> hoặc đổ bóng, nền gradient này làm lộ rõ các góc bo, nhìn chắp vá và lệch khỏi giao diện của app.</li>
+                <li><strong>Mục tiêu:</strong> tự gắn nền đen cố định khi xuất cho Story, và giữ đúng tỉ lệ, chất lượng khi xuất cho Feed.</li>
               </ul>
             </div>
           </section>
 
           <section class="space-y-4">
-            ${sectionTitle(2, "Jetpack Compose: drawWithCache + Brush.verticalGradient")}
-            <div class="${card}">
-              <p class="${text}"><code class="${inlineCode}">drawWithCache</code> chỉ tạo lại <code class="${inlineCode}">Brush</code> khi kích thước thay đổi, tránh cấp phát object mới mỗi lần recomposition/redraw như khi tạo Brush trực tiếp trong <code class="${inlineCode}">drawBehind</code> hay <code class="${inlineCode}">background()</code>.</p>
-              <pre class="${code}"><code>fun Modifier.bottomScrim(
-    color: Color = Color.Black.copy(alpha = 0.6f),
-    fraction: Float = 0.4f
-) = drawWithCache {
-    val scrimTop = size.height * (1f - fraction)
-    val brush = Brush.verticalGradient(
-        colors = listOf(Color.Transparent, color),
-        startY = scrimTop,
-        endY = size.height
-    )
-    onDrawWithContent {
-        drawContent()                       // vẽ ảnh trước
-        drawRect(brush, topLeft = Offset(0f, scrimTop))  // rồi phủ scrim lên
-    }
-}
-
-Box {
-    AsyncImage(
-        model = userPhotoUri,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier.fillMaxSize().bottomScrim()
-    )
-    Text(
-        text = "Brand",
-        color = Color.White,
-        modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
-    )
-}</code></pre>
+            ${sectionTitle(2, "Quy tắc xuất ảnh")}
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
+              <table class="w-full text-sm bg-white dark:bg-slate-800/30">
+                <thead class="bg-slate-50 dark:bg-slate-800/60">
+                  <tr>
+                    <th class="${th}">Vị trí đăng</th>
+                    <th class="${th}">Tỉ lệ</th>
+                    <th class="${th}">Độ phân giải</th>
+                    <th class="${th}">Nền &amp; bo góc</th>
+                    <th class="${th}">Định dạng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="${td}"><strong>Story</strong><br/><em>IG / FB Story</em></td>
+                    <td class="${td}"><strong>9:16</strong></td>
+                    <td class="${td}"><code class="${inlineCode}">1080 × 1920</code></td>
+                    <td class="${td}">Nền đen <code class="${inlineCode}">#000000</code>, ảnh 1:1 đặt chính giữa. Giữ nguyên bo góc nếu có.</td>
+                    <td class="${td}">PNG / JPG (quality 90–95%)</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Feed</strong><br/><em>IG / FB Feed</em></td>
+                    <td class="${td}"><strong>1:1</strong></td>
+                    <td class="${td}"><code class="${inlineCode}">1080 × 1080</code> (hoặc giữ gốc nếu ≥ 1080)</td>
+                    <td class="${td}">Giữ nguyên 1:1, <strong>không</strong> thêm padding đen.</td>
+                    <td class="${td}">PNG / JPG (quality 90–95%)</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </section>
 
           <section class="space-y-4">
-            ${sectionTitle(3, "Phương án thay thế: Chip background")}
+            ${sectionTitle(3, "Story 9:16: Black Canvas")}
             <div class="${card}">
-              <p class="${text}">Với logo hoặc nhãn nhỏ, bọc trong container có nền bán trong suốt thay vì phủ gradient lên toàn bộ ảnh.</p>
-              <pre class="${code}"><code>Text(
-    text = "PREMIUM",
-    color = Color.White,
-    modifier = Modifier
-        .background(chipBgColor, RoundedCornerShape(50))
-        .padding(horizontal = 10.dp, vertical = 4.dp)
-)</code></pre>
+              <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                <li><strong>Tạo canvas</strong> <code class="${inlineCode}">Bitmap</code> trống <code class="${inlineCode}">1080 × 1920 px</code>.</li>
+                <li><strong>Fill nền đen tuyền</strong> <code class="${inlineCode}">#000000</code> (alpha 255). Nền đen trùng với theme mặc định của trình xem Story nên Meta không chèn gradient nữa.</li>
+                <li><strong>Scale ảnh vuông</strong> về <code class="${inlineCode}">1080 × 1080</code> (chạm sát hai mép) hoặc <code class="${inlineCode}">960 × 960</code> nếu muốn chừa safe margin.</li>
+                <li><strong>Căn giữa:</strong> <code class="${inlineCode}">x = (1080 − width) / 2</code>, <code class="${inlineCode}">y = (1920 − height) / 2</code>.</li>
+                <li><strong>Bo góc:</strong> clip path bo góc (ví dụ 16dp / 24dp) lên ảnh nội dung <em>trước</em> khi vẽ lên canvas đen.</li>
+              </ol>
             </div>
           </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(4, "Feed 1:1")}
+            <div class="${card}">
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>Giữ nguyên tỉ lệ <strong>1:1</strong>, chuẩn <code class="${inlineCode}">1080 × 1080 px</code>: Meta nén tốt nhất ở độ phân giải này, ảnh ít bị vỡ / nhoè.</li>
+                <li>Nền trong suốt (nếu xuất PNG) hoặc theo màu user cấu hình.</li>
+                <li><strong>Không</strong> chèn viền / padding đen, vì ảnh sẽ bị thu nhỏ khi hiển thị trên lưới Feed (Feed Grid).</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(5, "Code mẫu: Kotlin Bitmap Processing")}
+            <div class="${card}">
+              <p class="${text}">Vẽ thẳng ảnh gốc vào vùng đích bằng <code class="${inlineCode}">drawBitmap(src, null, dstRect, paint)</code> thay vì <code class="${inlineCode}">createScaledBitmap</code> để không phải cấp phát thêm một Bitmap trung gian. Bo góc được áp bằng <code class="${inlineCode}">clipPath</code> ngay trên canvas.</p>
+              <pre class="${code}"><code>enum class ShareDestination { FEED_1_1, STORY_9_16 }
+
+object ImageExportHelper {
+
+    private const val FEED_SIZE = 1080
+    private const val STORY_WIDTH = 1080
+    private const val STORY_HEIGHT = 1920
+
+    fun exportImage(
+        source: Bitmap,
+        destination: ShareDestination,
+        cornerRadiusPx: Float = 0f,
+        contentSize: Int = STORY_WIDTH      // 960 nếu muốn safe margin
+    ): Bitmap = when (destination) {
+        ShareDestination.FEED_1_1 ->
+            Bitmap.createScaledBitmap(source, FEED_SIZE, FEED_SIZE, true)
+        ShareDestination.STORY_9_16 ->
+            createStoryCanvas(source, cornerRadiusPx, contentSize)
+    }
+
+    private fun createStoryCanvas(
+        content: Bitmap,
+        cornerRadiusPx: Float,
+        contentSize: Int
+    ): Bitmap {
+        val result = Bitmap.createBitmap(STORY_WIDTH, STORY_HEIGHT, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+
+        // 1. Nền đen tuyệt đối để Meta không chèn gradient tự động
+        canvas.drawColor(Color.BLACK)
+
+        // 2. Vùng đích căn giữa cả hai trục
+        val left = (STORY_WIDTH - contentSize) / 2f
+        val top = (STORY_HEIGHT - contentSize) / 2f
+        val dst = RectF(left, top, left + contentSize, top + contentSize)
+
+        // 3. Clip bo góc rồi vẽ ảnh nội dung vào vùng đích
+        canvas.save()
+        if (cornerRadiusPx > 0f) {
+            val path = Path().apply {
+                addRoundRect(dst, cornerRadiusPx, cornerRadiusPx, Path.Direction.CW)
+            }
+            canvas.clipPath(path)
+        }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        canvas.drawBitmap(content, null, dst, paint)
+        canvas.restore()
+
+        return result
+    }
+}
+
+// Lưu file: JPG quality 90–95
+result.compress(Bitmap.CompressFormat.JPEG, 92, outputStream)</code></pre>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(6, "UI/UX flow khuyến nghị")}
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="${card}">
+                <h4 class="font-bold text-pink-600 dark:text-pink-400 text-sm"><i class="fa-solid fa-mobile-screen mr-1"></i> Story (9:16)</h4>
+                <p class="${text}">Tối ưu cho Instagram Story, Facebook Story, tự thêm nền đen.</p>
+              </div>
+              <div class="${card}">
+                <h4 class="font-bold text-pink-600 dark:text-pink-400 text-sm"><i class="fa-solid fa-image mr-1"></i> Feed / Bảng tin (1:1)</h4>
+                <p class="${text}">Tối ưu cho bài đăng vuông, giữ nguyên ảnh không padding.</p>
+              </div>
+            </div>
+            <p class="${text}">Khi user bấm <strong>Share / Xuất ảnh</strong>, hiển thị hai lựa chọn trên. Có thể thêm toggle nhanh <em>"Tối ưu nền khi đăng Story"</em> để user tự bật / tắt.</p>
+          </section>
+
+          <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý:</strong> Canvas <code class="${inlineCode}">1080 × 1920</code> ARGB_8888 chiếm khoảng <strong>8MB</strong> RAM. Nên xử lý trên background thread (<code class="${inlineCode}">Dispatchers.Default</code>) và <code class="${inlineCode}">recycle()</code> / giải phóng Bitmap sau khi đã lưu file.</p>
+          </div>
         </div>
       `
     }
