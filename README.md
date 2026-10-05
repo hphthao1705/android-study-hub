@@ -44,3 +44,21 @@ android-study-hub/
     └── courses/
         ├── coroutines-flow.js   # Coroutines & Flow deep dive module
         └── hls-streaming.js     # HTTP Live Streaming (HLS) course module
+```
+
+---
+
+## 🚀 Deploy to Netlify
+
+The site is static, so there is no build step. Config is in `netlify.toml` (`publish = "."`).
+
+**Option A — Git (auto-deploy on push):** Netlify → *Add new site* → *Import an existing project* → choose this GitHub repo → keep Build command empty, Publish directory `.` → *Deploy*.
+
+**Option B — CLI:**
+
+```bash
+npm install -g netlify-cli
+netlify login
+netlify deploy          # preview deploy
+netlify deploy --prod   # production deploy
+```
