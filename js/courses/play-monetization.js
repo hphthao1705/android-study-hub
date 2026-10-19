@@ -396,6 +396,183 @@ export const playMonetizationCourse = {
           </div>
         </div>
       `
+    },
+    {
+      id: "pricing-during-testing",
+      num: "03",
+      badge: "Testing",
+      title: "Đặt Giá Khi Test: One-time vs Subscription",
+      desc: "Có nên đặt giá tạm cho QC test rồi sửa lại trước Go-live? One-time product thì được, Subscription thì không nên. License Testing và cách làm chuẩn.",
+      content: `
+        <div class="space-y-8">
+          ${header("03", "QC Testing", "Đặt Giá Khi Test: One-time vs Subscription", "Client chưa chốt giá nhưng QC cần test luồng mua: đặt giá tạm rồi sửa sau có an toàn không? Câu trả lời khác nhau hoàn toàn giữa One-time product và Subscription.")}
+
+          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <p class="text-emerald-700 dark:text-emerald-300 text-sm"><i class="fa-solid fa-circle-check mr-1"></i> <strong>Ý chính:</strong> <strong>One-time product</strong> &rarr; đặt giá tạm rồi sửa sau hoàn toàn an toàn. <strong>Subscription</strong> &rarr; không nên sửa giá trên cùng một Base Plan; hãy đặt giá chính thức ngay từ đầu hoặc tạo Base Plan mới khi chốt giá.</p>
+          </div>
+
+          <section class="space-y-4">
+            ${sectionTitle(1, "Không cần \"giá test\": License Testing không trừ tiền thật")}
+            <div class="${card}">
+              <p class="${text}">Tài khoản nằm trong danh sách <strong>License testing</strong> khi bấm mua sẽ thấy phương thức thanh toán giả lập <strong>"Test card, always approves"</strong>. Tài khoản test <strong>không bao giờ bị trừ tiền</strong>, dù sản phẩm đặt giá 1.000 VNĐ hay 10.000.000 VNĐ.</p>
+              <p class="${text}"><strong>Cách thêm tester:</strong></p>
+              <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                <li>Vào <strong>Google Play Console</strong> (cấp tài khoản developer, không phải trong từng app) &rarr; <strong>Settings</strong> &rarr; <strong>License testing</strong>.</li>
+                <li>Thêm email Google của QC/Dev (hoặc một email list) rồi lưu.</li>
+                <li>Tester cài app từ một testing track (Internal / Closed testing) bằng đúng tài khoản đó.</li>
+              </ol>
+            </div>
+            <div class="${card}">
+              <p class="${text}"><strong>Chu kỳ subscription được rút ngắn tự động</strong> cho License tester, để QC kiểm tra luồng gia hạn, hủy gói, grace period nhanh chóng:</p>
+              <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700/50">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 dark:bg-slate-800/60">
+                    <tr>
+                      <th class="${th}">Chu kỳ thật</th>
+                      <th class="${th}">Chu kỳ khi test</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="${td}">1 tuần</td><td class="${td}">5 phút</td></tr>
+                    <tr><td class="${td}">1 tháng</td><td class="${td}">5 phút</td></tr>
+                    <tr><td class="${td}">3 tháng</td><td class="${td}">10 phút</td></tr>
+                    <tr><td class="${td}">6 tháng</td><td class="${td}">15 phút</td></tr>
+                    <tr><td class="${td}">1 năm</td><td class="${td}">30 phút</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="${text}">Gói test tự gia hạn tối đa <strong>6 lần</strong> rồi tự hủy.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(2, "One-time product: đặt giá tạm rồi sửa sau là an toàn")}
+            <div class="${card}">
+              <p class="${text}"><strong>Vì sao được:</strong></p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Không có gia hạn tự động, không có nhóm giá cũ:</strong> giao dịch kết thúc ngay tại thời điểm thanh toán.</li>
+                <li><strong>Đổi giá không cần build lại:</strong> vào <strong>One-time products</strong> &rarr; chọn sản phẩm &rarr; sửa giá. Giá mới có hiệu lực sau vài phút đến vài giờ.</li>
+                <li><strong>Không đụng code:</strong> <code class="${inlineCode}">productId</code> giữ nguyên; <code class="${inlineCode}">queryProductDetailsAsync()</code> luôn lấy giá mới nhất từ Google Play để hiển thị.</li>
+              </ul>
+            </div>
+            <div class="${card}">
+              <p class="${text}"><strong>Nên nhập giá nào?</strong></p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Client đã có giá dự kiến:</strong> nhập luôn giá đó. QC vừa test luồng mua miễn phí, vừa kiểm tra được định dạng tiền tệ có làm vỡ UI không (ví dụ <code class="${inlineCode}">10.000.000 ₫</code> dài hơn nhiều so với <code class="${inlineCode}">$0.99</code>).</li>
+                <li><strong>Client chưa chốt giá:</strong> nhập một con số bất kỳ để kích hoạt Product ID cho QC. Khi client chốt thì sửa lại giá là xong.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(3, "Subscription: không nên đặt giá tạm rồi sửa trên cùng Base Plan")}
+            <div class="${card}">
+              <p class="${text}">Khi đổi giá một Base Plan đã có người đăng ký, Google Play không đơn giản áp giá mới cho tất cả. Người đăng ký cũ được giữ ở <strong>giá cũ (legacy price cohort)</strong>, và bạn phải chọn:</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Chỉ áp dụng cho người đăng ký mới:</strong> người cũ tiếp tục gia hạn với giá cũ &rarr; app có nhiều nhóm người dùng trả giá khác nhau.</li>
+                <li><strong>Chuyển cả người cũ sang giá mới:</strong> với tăng giá, thường phải là <strong>opt-in</strong>, người dùng phải chủ động đồng ý; nếu không bấm xác nhận trước kỳ gia hạn, gói <strong>tự động bị hủy</strong>. (Opt-out price increase chỉ được dùng trong giới hạn Google cho phép về mức tăng, tần suất và quốc gia.)</li>
+              </ul>
+              <p class="${text}">Các nhóm giá (price cohorts) này rất khó quản lý về sau, và người dùng thật đăng ký sớm có thể bị ảnh hưởng.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p class="text-red-700 dark:text-red-300 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Rủi ro:</strong> Base Plan đã Active với giá tạm, sau đó lên production và có người dùng thật đăng ký trước khi kịp sửa giá &rarr; những người này bị kẹt ở giá tạm, hoặc bị hủy gói nếu không đồng ý tăng giá.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(4, "Cách làm chuẩn cho Subscription")}
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="${card}">
+                <p class="text-sm font-bold text-slate-900 dark:text-white"><i class="fa-solid fa-star text-emerald-500 mr-1"></i> Cách 1: Đặt luôn giá chính thức (khuyên dùng)</p>
+                <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                  <li>Xin client mức giá dự kiến ngay từ giai đoạn chuẩn bị test.</li>
+                  <li>Tạo Subscription và Base Plan với đúng giá đó.</li>
+                  <li>Thêm email QC/Dev vào <strong>License testing</strong>.</li>
+                </ol>
+                <p class="${text}"><strong>Kết quả:</strong> QC thấy đúng giá thật, bấm mua thì hiện thẻ test (không trừ tiền). Go-live không phải sửa gì về giá.</p>
+              </div>
+              <div class="${card}">
+                <p class="text-sm font-bold text-slate-900 dark:text-white"><i class="fa-solid fa-code-branch text-teal-500 mr-1"></i> Cách 2: Base Plan riêng cho giai đoạn test</p>
+                <p class="${text}">Dùng khi client hoàn toàn chưa biết bán giá bao nhiêu:</p>
+                <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                  <li>Tạo Subscription ID như bình thường, Base Plan với giá ước chừng.</li>
+                  <li>Khi client chốt giá: tạo <strong>Base Plan mới</strong> với giá chính thức và <strong>Activate</strong>.</li>
+                  <li><strong>Deactivate</strong> Base Plan cũ dùng lúc test.</li>
+                  <li>Cập nhật <code class="${inlineCode}">basePlanId</code> trong app (hoặc backend trả về ID động) trỏ sang Base Plan mới.</li>
+                </ol>
+                <p class="${text}"><strong>Kết quả:</strong> không dính cohort/giá cũ nào từ giai đoạn thử nghiệm.</p>
+              </div>
+            </div>
+            <div class="${card}">
+              <p class="${text}"><strong>Ví dụ:</strong> chọn offer theo <code class="${inlineCode}">basePlanId</code> thay vì lấy phần tử đầu tiên, để đổi Base Plan chỉ cần đổi một hằng số (hoặc giá trị từ Remote Config / backend).</p>
+              <pre class="${code}"><code>const val PREMIUM_BASE_PLAN_ID = "monthly-v2" // đổi từ "monthly" khi client chốt giá
+
+val offer = productDetails.subscriptionOfferDetails
+    ?.firstOrNull { it.basePlanId == PREMIUM_BASE_PLAN_ID &amp;&amp; it.offerId == null }
+    ?: return
+
+val params = BillingFlowParams.ProductDetailsParams.newBuilder()
+    .setProductDetails(productDetails)
+    .setOfferToken(offer.offerToken)
+    .build()</code></pre>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý:</strong> Base Plan ID cũng giống Product ID: đã Activate thì không xóa và không tái sử dụng được, chỉ Deactivate. Deactivate chỉ chặn đăng ký mới; ai đang đăng ký Base Plan cũ vẫn tiếp tục gia hạn bình thường.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(5, "Checklist test lại One-time product nhiều lần")}
+            <div class="${card}">
+              <p class="${text}">Để QC mua đi mua lại mà không bị lỗi <strong>"You already own this item"</strong> (<code class="${inlineCode}">ITEM_ALREADY_OWNED</code>):</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Consumable:</strong> code app bắt buộc phải gọi <code class="${inlineCode}">consumeAsync()</code> sau khi mua thành công. Nếu QC vẫn bị "already owned" thì đó là bug thật cần báo.</li>
+                <li><strong>Non-consumable:</strong> sau khi test mua thành công, dev vào <strong>Play Console &rarr; Order management</strong> để <strong>refund và revoke</strong> đơn test, hoặc thêm một nút <strong>consume tạm</strong> chỉ có trong build debug để giải phóng item cho lần test sau.</li>
+              </ul>
+            </div>
+            <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p class="text-red-700 dark:text-red-300 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Cẩn thận:</strong> code consume non-consumable phải được bọc trong <code class="${inlineCode}">BuildConfig.DEBUG</code>. Lọt lên bản release sẽ làm người dùng thật mất quyền sở hữu gói trọn đời.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(6, "Bảng so sánh")}
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
+              <table class="w-full text-sm bg-white dark:bg-slate-800/30">
+                <thead class="bg-slate-50 dark:bg-slate-800/60">
+                  <tr>
+                    <th class="${th}">Tiêu chí</th>
+                    <th class="${th}">One-time Product</th>
+                    <th class="${th}">Subscription</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="${td}"><strong>Đặt giá tạm rồi sửa sau</strong></td>
+                    <td class="${td}">An toàn</td>
+                    <td class="${td}">Không nên (trên cùng Base Plan)</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Đổi giá ảnh hưởng người mua cũ</strong></td>
+                    <td class="${td}">Không</td>
+                    <td class="${td}">Có: legacy cohort hoặc opt-in tăng giá</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Cần sửa code khi đổi giá</strong></td>
+                    <td class="${td}">Không</td>
+                    <td class="${td}">Không, nếu sửa giá; có (đổi <code class="${inlineCode}">basePlanId</code>) nếu tạo Base Plan mới</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Khuyến nghị</strong></td>
+                    <td class="${td}">Nhập giá dự kiến, sửa thoải mái trước Go-live</td>
+                    <td class="${td}">Đặt giá chính thức ngay, hoặc Base Plan mới khi chốt giá</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `
     }
   ]
 };
