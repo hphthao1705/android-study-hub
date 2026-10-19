@@ -4,8 +4,11 @@
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin%20%2F%20JVM-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![JavaScript](https://img.shields.io/badge/UI-Vanilla%20JS%20%2F%20Tailwind-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](#-license)
+[![Netlify](https://img.shields.io/badge/Live%20Demo-Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)](https://thao-ho-study.netlify.app/)
 
 > **Android Mastery Hub** is an interactive, zero-build technical dashboard engineered to deconstruct deep runtime internals, JVM/ART bytecode transformations, compiler optimizations, and Clean Architecture patterns for Android engineers preparing for senior technical interviews.
+
+🌐 **Live site:** [https://thao-ho-study.netlify.app/](https://thao-ho-study.netlify.app/)
 
 ---
 
@@ -24,13 +27,11 @@
 | Category | Course Title | Core Mechanics Deconstructed |
 | :--- | :--- | :--- |
 | **Concurrency** | **Coroutines & Flow Core Mechanics** | CPS transformation, `COROUTINE_SUSPENDED`, `label` bitmasking (`Integer.MIN_VALUE`), `CoroutineScheduler` work-stealing, CSP Channels. |
-| **Media & Streaming** | **HTTP Live Streaming (HLS) Deep Dive** | I-frame/GOP segmentation, `.ts` vs `.m4s`, Low-Latency HLS (1–3s latency), SSAI `#EXT-X-DISCONTINUITY`, Widevine CENC DRM. |
-| **Local Storage** | **Room Database Deep-Dive** | KSP code generation, SQLite `TEMP TRIGGER` mechanics, `InvalidationTracker` table monitoring, query threading. |
-| **UI Architecture** | **Compose Lifecycle & Recomposition** | Slot Table, Gap Buffer algorithm, Smart Recomposition, `collectAsStateWithLifecycle`, 5000ms `WhileSubscribed` buffer. |
-| **Modern Navigation** | **Type-Safe Navigation 2.8+** | Kotlinx Serialization routes, custom `NavType`, eliminating string-based route collisions. |
-| **Custom Graphics** | **Compose Canvas & Trigonometry** | `DrawScope` coordinates, Radian/Degree transforms, Bezier curves, and CPU-efficient custom gauges. |
-| **System Internals** | **WorkManager vs Foreground Services** | Android 14+ service types, Doze Mode bypass, Expedited Jobs, Low Memory Killer (LMK) & Process Death. |
-| **Testing** | **Coroutines & Flow Testing** | `Turbine` stream assertions, `TestScope` virtual time advancement, TestDispatchers. |
+| **Persistence** | **Room Database & SQLite Architecture** | TypeConverters, safe migrations, Write-Ahead Logging (WAL), multithreaded access. |
+| **Media & Streaming** | **HTTP Live Streaming (HLS) & Video Processing** | I-frame/GOP segmentation, `.ts` vs `.m4s`, Low-Latency HLS, SSAI, hardware DRM, Media3 ExoPlayer (ABR) & Transformer. |
+| **UI & Performance** | **Android Graphics & Image Assets** | Vector vs Raster, density buckets, Bitmap memory management, Feed/Story export specs for Facebook & Instagram. |
+| **Publishing** | **Google Play Monetization** | Paid App vs In-app Products vs Subscriptions, Play Billing (`consumeAsync` / `acknowledgePurchase`), Play Console vs Google Cloud, server-side receipt validation. |
+| **AI Tools** | **Claude** | Using Claude in the Android development workflow *(in progress)*. |
 
 ---
 
@@ -38,17 +39,31 @@
 
 ```text
 android-study-hub/
-├── index.html                   # Main dashboard view & dynamic lesson reader
-├── README.md                    # Project documentation
+├── index.html                     # Main dashboard view & dynamic lesson reader
+├── netlify.toml                   # Netlify config (zero-build static site)
+├── README.md                      # Project documentation
+├── css/
 └── js/
+    ├── app.js                     # SPA logic: dashboard, reader, search, theme
+    ├── data/
+    │   ├── courses-repository.js  # Registers every course shown on the dashboard
+    │   └── lessons/
+    │       └── room-db.js         # Room Database course module
     └── courses/
-        ├── coroutines-flow.js   # Coroutines & Flow deep dive module
-        └── hls-streaming.js     # HTTP Live Streaming (HLS) course module
+        ├── coroutines-flow.js     # Coroutines & Flow
+        ├── hls-streaming.js       # HTTP Live Streaming (HLS)
+        ├── graphics-assets.js     # Android Graphics & Image Assets
+        ├── play-monetization.js   # Google Play Monetization
+        └── claude.js              # Claude
 ```
+
+To add a course, create a module in `js/courses/` that exports a course object, then import and add it to `js/data/courses-repository.js`.
 
 ---
 
 ## 🚀 Deploy to Netlify
+
+The site is deployed at **[thao-ho-study.netlify.app](https://thao-ho-study.netlify.app/)**.
 
 The site is static, so there is no build step. Config is in `netlify.toml` (`publish = "."`).
 
