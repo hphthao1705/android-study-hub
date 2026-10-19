@@ -66,6 +66,7 @@ export const playMonetizationCourse = {
             ${sectionTitle(2, "One-Time Products (In-App Products / Sản phẩm mua một lần)")}
             <div class="${card}">
               <p class="${text}"><strong>Bản chất:</strong> Vật phẩm, tính năng hoặc nội dung số được mua <strong>bên trong ứng dụng</strong> thông qua <strong>Google Play Billing Library</strong>. Người dùng thanh toán một lần cho mỗi lượt mua.</p>
+              <p class="${text}"><strong>Quy tắc phân loại:</strong> bất kỳ gói nào <strong>trả tiền một lần và không tự động gia hạn</strong> (non-recurring) đều được tạo ở mục <strong>One-time products</strong> trên Play Console. Việc nó là Consumable hay Non-consumable <strong>không cấu hình trên Console</strong> mà do <strong>code trong app quyết định</strong> (có gọi consume hay không).</p>
               <p class="${text}">Được chia thành 2 nhóm kỹ thuật chính:</p>
             </div>
             <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
@@ -82,14 +83,14 @@ export const playMonetizationCourse = {
                   <tr>
                     <td class="${td}"><strong>Consumable</strong><br/><em>Sản phẩm tiêu hao</em></td>
                     <td class="${td}">Có thể mua <strong>nhiều lần</strong>. Mua xong, app phải gọi lệnh tiêu thụ để người dùng có thể mua tiếp lượt sau.</td>
-                    <td class="${td}">Coin, kim cương, mạng chơi game, lượt gọi API, lượt spin/quay thưởng.</td>
-                    <td class="${td}">Gọi <code class="${inlineCode}">consumeAsync()</code> sau khi xác nhận thanh toán thành công.</td>
+                    <td class="${td}">Coin, kim cương, mạng chơi game, lượt gọi API, lượt tạo ảnh, lượt spin/quay thưởng, gói dùng 30 ngày dạng mua đứt trả trước (app tự quản lý hạn dùng).</td>
+                    <td class="${td}">Gọi <code class="${inlineCode}">consumeAsync()</code> sau khi xác nhận thanh toán thành công &rarr; báo Google Play vật phẩm đã tiêu thụ, cho phép tài khoản đó mua lại.</td>
                   </tr>
                   <tr>
                     <td class="${td}"><strong>Non-Consumable</strong><br/><em>Sản phẩm vĩnh viễn</em></td>
-                    <td class="${td}">Chỉ mua <strong>một lần duy nhất</strong> cho mỗi tài khoản Google Play.</td>
-                    <td class="${td}">Mở khóa Pro/Premium trọn đời, gỡ quảng cáo (Remove Ads), mở khóa toàn bộ bài học.</td>
-                    <td class="${td}">Không consume. Chỉ gọi <code class="${inlineCode}">acknowledgePurchase()</code> để ghi nhận quyền sở hữu vĩnh viễn.</td>
+                    <td class="${td}">Chỉ mua <strong>một lần duy nhất</strong> cho mỗi tài khoản Google Play. Đổi máy hoặc cài lại app &rarr; <strong>Restore Purchase</strong> (<code class="${inlineCode}">queryPurchasesAsync()</code>) là Google Play trả lại quyền sở hữu, không bắt mua lại.</td>
+                    <td class="${td}">Gói Lifetime, mở khóa Pro/Premium trọn đời, gỡ quảng cáo (Remove Ads), mở khóa toàn bộ bài học.</td>
+                    <td class="${td}">Chỉ gọi <code class="${inlineCode}">acknowledgePurchase()</code> để ghi nhận quyền sở hữu vĩnh viễn. <strong>Tuyệt đối không consume</strong> &mdash; consume sẽ làm mất quyền sở hữu, không restore được.</td>
                   </tr>
                 </tbody>
               </table>
@@ -120,6 +121,9 @@ export const playMonetizationCourse = {
             </div>
             <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
               <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý:</strong> Purchase không được acknowledge (hoặc consume) trong vòng <strong>3 ngày</strong> sẽ bị Google Play <strong>tự động hoàn tiền</strong> và thu hồi quyền.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <p class="text-emerald-700 dark:text-emerald-300 text-sm"><i class="fa-solid fa-circle-check mr-1"></i> <strong>Tóm lại:</strong> gói trả tiền một lần để <strong>dùng mãi mãi</strong>, không trừ tiền định kỳ &rarr; tạo ở <strong>One-time products</strong> và xử lý dạng <strong>Non-consumable</strong> (chỉ acknowledge, không consume).</p>
             </div>
           </section>
 
@@ -157,7 +161,36 @@ export const playMonetizationCourse = {
           </section>
 
           <section class="space-y-4">
-            ${sectionTitle(4, "Bảng so sánh tổng quan")}
+            ${sectionTitle(4, "Product ID: không thể xóa, chỉ có thể Deactivate")}
+            <div class="${card}">
+              <p class="${text}">Áp dụng cho cả <strong>One-time products</strong> và <strong>Subscriptions</strong>. Một khi Product ID đã được lưu, nó tồn tại <strong>vĩnh viễn</strong> trong dữ liệu của ứng dụng đó:</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Không có nút Delete:</strong> không thể xóa vĩnh viễn Product ID khỏi Play Console.</li>
+                <li><strong>Không tái sử dụng được:</strong> kể cả khi bỏ sản phẩm, cũng không thể tạo sản phẩm mới trùng lại ID cũ.</li>
+                <li><strong>Không sửa được ID:</strong> chỉ sửa được tên hiển thị (Name), mô tả (Description), giá (Price); Product ID là cố định tuyệt đối.</li>
+              </ul>
+            </div>
+            <div class="${card}">
+              <p class="${text}"><strong>Cách xử lý khi tạo nhầm hoặc muốn bỏ sản phẩm:</strong> Hủy kích hoạt (Deactivate).</p>
+              <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                <li>Vào <strong>Monetize with Play</strong> &rarr; chọn <strong>One-time products</strong> (hoặc <strong>Subscriptions</strong>).</li>
+                <li>Nhấp vào sản phẩm muốn bỏ.</li>
+                <li>Chuyển trạng thái từ <strong>Active</strong> sang <strong>Inactive</strong> rồi lưu lại.</li>
+              </ol>
+              <p class="${text}"><strong>Kết quả khi chuyển sang Inactive:</strong></p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>Người dùng <strong>không còn thấy và không thể mua</strong> sản phẩm này qua Google Play Billing.</li>
+                <li>Người đã mua trước đó (gói trọn đời / non-consumable) <strong>vẫn giữ nguyên quyền lợi</strong> và restore purchase bình thường.</li>
+                <li>Muốn dùng mã khác thì tạo một sản phẩm <strong>hoàn toàn mới</strong> với Product ID mới.</li>
+              </ul>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý:</strong> vì Product ID là vĩnh viễn, hãy đặt tên có quy ước rõ ràng ngay từ đầu (ví dụ <code class="${inlineCode}">premium_lifetime</code>, <code class="${inlineCode}">coins_100</code>) trước khi bấm lưu.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(5, "Bảng so sánh tổng quan")}
             <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
               <table class="w-full text-sm bg-white dark:bg-slate-800/30">
                 <thead class="bg-slate-50 dark:bg-slate-800/60">
