@@ -4,7 +4,7 @@ export const hlsStreamingCourse = {
   category: "Media & Streaming",
   icon: "fa-video",
   color: "from-purple-500 to-indigo-600",
-  badge: "Streaming",
+  badge: "Chuyên Sâu",
   description: "Giải phẫu toàn diện giao thức Apple HLS (I-Frame, .ts vs .m4s, LL-HLS, Playlist VOD/Live/DVR, SSAI, DRM phần cứng) và áp dụng trên Android với Media3 ExoPlayer (ABR) & Transformer (Trimming, Compression).",
   lessons: [
     {

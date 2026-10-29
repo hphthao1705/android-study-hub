@@ -26,10 +26,10 @@ const td = "p-3 align-top text-slate-700 dark:text-slate-300 border-b border-sla
 export const graphicsAssetsCourse = {
   id: "android-graphics-assets",
   title: "Android Graphics & Image Assets",
-  category: "UI & Performance",
+  category: "UI & Graphics",
   icon: "fa-image",
   color: "from-pink-500 to-orange-500",
-  badge: "Best Practice",
+  badge: "Thực Chiến",
   description: "Quy tắc chọn Vector vs Raster, xử lý hình theo độ chi tiết, Density Buckets & quản lý bộ nhớ Bitmap, và quy chuẩn xuất ảnh Feed/Story cho Facebook & Instagram.",
   lessons: [
     {

@@ -4,7 +4,7 @@ export const coroutinesCourse = {
   category: "Concurrency",
   icon: "fa-bolt",
   color: "from-emerald-500 to-sky-600",
-  badge: "Cốt Lõi",
+  badge: "Chuyên Sâu",
   description: "Giải phẫu toàn diện biến đổi CPS, JVM bytecode, State Machine (label & bitmasking), JIT escape analysis và cơ chế hằng số COROUTINE_SUSPENDED.",
   lessons: [
     {

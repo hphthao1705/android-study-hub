@@ -18,7 +18,7 @@ export const claudeCourse = {
   category: "AI Tools",
   icon: "fa-robot",
   color: "from-amber-500 to-orange-500",
-  badge: "New",
+  badge: "Đang Cập Nhật",
   description: "Làm việc với Claude trong quy trình phát triển Android.",
   lessons: [
     {

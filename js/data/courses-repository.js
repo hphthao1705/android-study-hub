@@ -3,6 +3,7 @@ import { roomCourse } from './lessons/room-db.js';
 import { hlsStreamingCourse } from '../courses/hls-streaming.js';
 import { graphicsAssetsCourse } from '../courses/graphics-assets.js';
 import { claudeCourse } from '../courses/claude.js';
+import { androidStudioCourse } from '../courses/android-studio.js';
 import { playMonetizationCourse } from '../courses/play-monetization.js';
 
 export const coursesRepository = [
@@ -11,5 +12,6 @@ export const coursesRepository = [
   hlsStreamingCourse,
   graphicsAssetsCourse,
   claudeCourse,
-  playMonetizationCourse
+  playMonetizationCourse,
+  androidStudioCourse
 ];

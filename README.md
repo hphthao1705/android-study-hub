@@ -29,9 +29,10 @@
 | **Concurrency** | **Coroutines & Flow Core Mechanics** | CPS transformation, `COROUTINE_SUSPENDED`, `label` bitmasking (`Integer.MIN_VALUE`), `CoroutineScheduler` work-stealing, CSP Channels. |
 | **Persistence** | **Room Database & SQLite Architecture** | TypeConverters, safe migrations, Write-Ahead Logging (WAL), multithreaded access. |
 | **Media & Streaming** | **HTTP Live Streaming (HLS) & Video Processing** | I-frame/GOP segmentation, `.ts` vs `.m4s`, Low-Latency HLS, SSAI, hardware DRM, Media3 ExoPlayer (ABR) & Transformer. |
-| **UI & Performance** | **Android Graphics & Image Assets** | Vector vs Raster, density buckets, Bitmap memory management, Feed/Story export specs for Facebook & Instagram. |
-| **Publishing** | **Google Play Monetization** | Paid App vs In-app Products vs Subscriptions, Play Billing (`consumeAsync` / `acknowledgePurchase`), Play Console vs Google Cloud, server-side receipt validation. |
+| **UI & Graphics** | **Android Graphics & Image Assets** | Vector vs Raster, density buckets, Bitmap memory management, Feed/Story export specs for Facebook & Instagram. |
+| **Monetization** | **Google Play Monetization** | Paid App vs In-app Products vs Subscriptions, Play Billing (`consumeAsync` / `acknowledgePurchase`), Play Console vs Google Cloud, server-side receipt validation. |
 | **AI Tools** | **Claude** | Using Claude in the Android development workflow *(in progress)*. |
+| **Developer Tools** | **Android Studio** | Git branch sync & cleanup (`fetch.prune`, `git fetch -p`, removing merged local branches). |
 
 ---
 
@@ -54,7 +55,8 @@ android-study-hub/
         ├── hls-streaming.js       # HTTP Live Streaming (HLS)
         ├── graphics-assets.js     # Android Graphics & Image Assets
         ├── play-monetization.js   # Google Play Monetization
-        └── claude.js              # Claude
+        ├── claude.js              # Claude
+        └── android-studio.js      # Android Studio
 ```
 
 To add a course, create a module in `js/courses/` that exports a course object, then import and add it to `js/data/courses-repository.js`.

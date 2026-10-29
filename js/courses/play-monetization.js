@@ -26,10 +26,10 @@ const td = "p-3 align-top text-slate-700 dark:text-slate-300 border-b border-sla
 export const playMonetizationCourse = {
   id: "google-play-monetization",
   title: "Google Play Monetization",
-  category: "Publishing",
+  category: "Monetization",
   icon: "fa-sack-dollar",
   color: "from-emerald-500 to-teal-500",
-  badge: "New",
+  badge: "Thực Chiến",
   description: "Thiết lập giá tiền và mô hình kiếm tiền trên Google Play Console: Paid App, In-app Products, Subscriptions và Play Billing Library.",
   lessons: [
     {
