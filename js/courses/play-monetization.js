@@ -573,6 +573,367 @@ val params = BillingFlowParams.ProductDetailsParams.newBuilder()
           </section>
         </div>
       `
+    },
+    {
+      id: "multi-quantity-limit",
+      num: "04",
+      badge: "Pricing",
+      title: "\"Multi-quantity unavailable over USD 100\" Nghĩa Là Gì?",
+      desc: "Thông báo trong bảng Availability and pricing không giới hạn số lần mua, mà chỉ tắt ô chọn số lượng (x2, x5) trong một lần thanh toán khi đơn giá vượt ngưỡng ~100 USD.",
+      content: `
+        <div class="space-y-8">
+          ${header("04", "Pricing", "\"Multi-quantity unavailable over USD 100\" Nghĩa Là Gì?", "Đặt giá gói coin hơn 100 USD rồi thấy cảnh báo này ở cột cuối bảng Availability and pricing: người dùng có còn mua được nhiều lần không? Có, chỉ là không chọn được số lượng trong cùng một lần bấm mua.")}
+
+          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <p class="text-emerald-700 dark:text-emerald-300 text-sm"><i class="fa-solid fa-circle-check mr-1"></i> <strong>Ý chính:</strong> đây <strong>không phải</strong> giới hạn số lần giao dịch. Nó chỉ cho biết tính năng <strong>Multi-quantity</strong> (chọn x2, x5... ngay trên pop-up thanh toán) bị tắt với sản phẩm có <strong>đơn giá</strong> vượt ngưỡng. Người dùng vẫn mua được, mỗi lượt checkout đúng <code class="${inlineCode}">quantity = 1</code>.</p>
+          </div>
+
+          <section class="space-y-4">
+            ${sectionTitle(1, "Thông báo xuất hiện ở đâu")}
+            <div class="${card}">
+              <p class="${text}">Trong <strong>Play Console &rarr; One-time products &rarr; chọn sản phẩm &rarr; Availability and pricing</strong>, mỗi quốc gia có thêm một cột thông tin, ví dụ:</p>
+              <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700/50">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 dark:bg-slate-800/60">
+                    <tr>
+                      <th class="${th}">Quốc gia</th>
+                      <th class="${th}">Giá</th>
+                      <th class="${th}">Thông báo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="${td}">Albania</td><td class="${td}">USD 130.11</td><td class="${td}">Multi-quantity unavailable over USD 100.00</td></tr>
+                    <tr><td class="${td}">Australia</td><td class="${td}">AUD 199.99</td><td class="${td}">Multi-quantity unavailable over AUD 155.00</td></tr>
+                    <tr><td class="${td}">Austria</td><td class="${td}">EUR 144.99</td><td class="${td}">Multi-quantity unavailable over EUR 94.00</td></tr>
+                    <tr><td class="${td}">Argentina</td><td class="${td}">ARS 194,514.45</td><td class="${td}">Multi-quantity unavailable over ARS 149,498.50</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="${text}">Ngưỡng khoảng <strong>100 USD</strong>, quy đổi sang tiền tệ địa phương nên mỗi nước một con số khác nhau. Cột <strong>Availability</strong> vẫn là <strong>Available</strong>: sản phẩm vẫn bán bình thường.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(2, "Multi-quantity là gì")}
+            <div class="${card}">
+              <p class="${text}"><strong>Multi-quantity</strong> cho phép người dùng mua nhiều đơn vị của cùng một sản phẩm trong <strong>một lần thanh toán</strong>: trên màn hình checkout của Google Play có ô chọn số lượng để tăng lên x2, x5 gói coin rồi trả tiền một lần.</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>Bật theo từng sản phẩm trên Play Console (tùy chọn cho phép mua nhiều hơn 1 đơn vị trong một giao dịch).</li>
+                <li>Chỉ có ý nghĩa với <strong>Consumable</strong>: app đọc số lượng từ <code class="${inlineCode}">purchase.quantity</code> và cộng đúng số vật phẩm.</li>
+                <li>Google đặt <strong>hạn mức trần ~100 USD cho đơn giá</strong>: nếu giá của <strong>1 item</strong> vượt ngưỡng, Google Play <strong>vô hiệu hóa ô chọn số lượng</strong>, người dùng chỉ mua được 1 đơn vị trong lượt checkout đó.</li>
+              </ul>
+              <pre class="${code}"><code>// Luôn nhân theo quantity, kể cả khi đa số đơn hàng chỉ có quantity = 1
+val coins = coinsPerPack(purchase.products.first()) * purchase.quantity
+grantCoins(userId, coins)
+
+val params = ConsumeParams.newBuilder()
+    .setPurchaseToken(purchase.purchaseToken)
+    .build()
+billingClient.consumeAsync(params) { result, _ -&gt; /* ... */ }</code></pre>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý:</strong> code cộng vật phẩm nên luôn dùng <code class="${inlineCode}">quantity</code>. Nếu gói rẻ hơn bật Multi-quantity mà code mặc định cộng 1 gói, người mua x5 chỉ nhận được 1 gói.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(3, "Một lần bấm mua vs mua nhiều lần")}
+            <div class="${card}">
+              <p class="text-sm font-bold text-slate-900 dark:text-white"><i class="fa-solid fa-cart-shopping text-emerald-500 mr-1"></i> Trong 1 lần bấm mua (Single Transaction)</p>
+              <p class="${text}">Giá item vượt ngưỡng (ví dụ &gt; 100 USD) &rarr; màn hình thanh toán của Google Play <strong>không hiển thị tùy chọn số lượng</strong>. Người dùng chỉ mua đúng <code class="${inlineCode}">1</code> gói cho mỗi giao dịch.</p>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="${card}">
+                <p class="text-sm font-bold text-slate-900 dark:text-white"><i class="fa-solid fa-coins text-amber-500 mr-1"></i> Consumable (vàng, gem, điểm, token...)</p>
+                <p class="${text}">Người dùng mua gói 100+ USD lần thứ nhất; sau khi hệ thống <strong>consume thành công</strong>, họ bấm mua tiếp lần 2, 3, 4... trong các <strong>lượt thanh toán riêng biệt</strong>.</p>
+              </div>
+              <div class="${card}">
+                <p class="text-sm font-bold text-slate-900 dark:text-white"><i class="fa-solid fa-lock-open text-teal-500 mr-1"></i> Non-consumable (mở khóa vĩnh viễn, remove ads)</p>
+                <p class="${text}">App chỉ gọi <code class="${inlineCode}">acknowledgePurchase()</code>, không gọi <code class="${inlineCode}">consumeAsync()</code> &rarr; người dùng chỉ mua được <strong>duy nhất 1 lần</strong> cho tài khoản Google Play đó; các lần sau bị Google Play chặn (<code class="${inlineCode}">ITEM_ALREADY_OWNED</code>).</p>
+              </div>
+            </div>
+            <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p class="text-red-700 dark:text-red-300 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Lỗi hay gặp:</strong> gói coin 100+ USD mà người dùng không mua lại được thì nguyên nhân thường là app <strong>chưa consume</strong> giao dịch trước, không phải do thông báo Multi-quantity.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(4, "Tóm tắt")}
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
+              <table class="w-full text-sm bg-white dark:bg-slate-800/30">
+                <thead class="bg-slate-50 dark:bg-slate-800/60">
+                  <tr>
+                    <th class="${th}">Tình huống</th>
+                    <th class="${th}">Đơn giá &le; ~100 USD</th>
+                    <th class="${th}">Đơn giá &gt; ~100 USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="${td}"><strong>Chọn số lượng trong 1 lần checkout</strong></td>
+                    <td class="${td}">Được (nếu bật Multi-quantity)</td>
+                    <td class="${td}">Không, luôn <code class="${inlineCode}">quantity = 1</code></td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Consumable mua lại nhiều lần</strong></td>
+                    <td class="${td}">Được, sau mỗi lần consume</td>
+                    <td class="${td}">Được, sau mỗi lần consume</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Non-consumable mua lại</strong></td>
+                    <td class="${td}">Không, 1 lần / tài khoản</td>
+                    <td class="${td}">Không, 1 lần / tài khoản</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `
+    },
+    {
+      id: "non-consumable-test-errors",
+      num: "05",
+      badge: "Testing",
+      title: "QC Không Mua Được Non-consumable: Debug Theo Response Code",
+      desc: "ITEM_ALREADY_OWNED (7), ITEM_UNAVAILABLE (4), DEVELOPER_ERROR (5): nguyên nhân thường gặp khi test gói mua 1 lần trên Internal/Closed testing và cách xử lý từng lỗi.",
+      content: `
+        <div class="space-y-8">
+          ${header("05", "QC Testing", "QC Không Mua Được Non-consumable: Debug Theo Response Code", "Gói mua 1 lần (Non-consumable) không mua được trên môi trường test thường không phải bug thanh toán, mà do cơ chế quản lý quyền sở hữu và cấu hình testing track của Google Play. Đọc response code trước, sửa sau.")}
+
+          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <p class="text-emerald-700 dark:text-emerald-300 text-sm"><i class="fa-solid fa-circle-check mr-1"></i> <strong>Ý chính:</strong> log <code class="${inlineCode}">billingResult.responseCode</code> và <code class="${inlineCode}">debugMessage</code> ở mọi callback. Ba mã hay gặp nhất khi test non-consumable: <strong>7</strong> (đã sở hữu), <strong>4</strong> (sản phẩm/track chưa sẵn sàng), <strong>5</strong> (code gọi sai).</p>
+          </div>
+
+          <section class="space-y-4">
+            ${sectionTitle(1, "Log response code trước khi đoán")}
+            <div class="${card}">
+              <p class="${text}">Gửi QC build có log (hoặc hiện mã lỗi ra Toast trong build debug) để biết chính xác Google Play trả về gì:</p>
+              <pre class="${code}"><code>override fun onPurchasesUpdated(result: BillingResult, purchases: List&lt;Purchase&gt;?) {
+    Log.d("Billing", "code=\${result.responseCode} msg=\${result.debugMessage}")
+    when (result.responseCode) {
+        BillingResponseCode.OK -&gt; purchases?.forEach(::handlePurchase)
+        BillingResponseCode.ITEM_ALREADY_OWNED -&gt; restorePurchases()   // 7
+        BillingResponseCode.ITEM_UNAVAILABLE -&gt; { /* 4: kiểm tra track, opt-in, Active */ }
+        BillingResponseCode.DEVELOPER_ERROR -&gt; { /* 5: kiểm tra productId, type, params */ }
+        BillingResponseCode.USER_CANCELED -&gt; Unit
+        else -&gt; { /* SERVICE_DISCONNECTED, ERROR...: retry */ }
+    }
+}</code></pre>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(2, "ITEM_ALREADY_OWNED (code 7): tài khoản đã sở hữu gói")}
+            <div class="${card}">
+              <p class="${text}"><strong>Lý do:</strong> tài khoản Google của QC đã mua thành công sản phẩm này ở lần test trước. Vì là non-consumable (không consume), Google Play coi tài khoản tester đó <strong>sở hữu vĩnh viễn</strong> và chặn mọi lần mua tiếp theo. Đây là hành vi đúng, không phải bug.</p>
+              <p class="${text}"><strong>Cách xử lý để QC mua lại:</strong></p>
+              <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                <li>Vào <strong>Google Play Console &rarr; Order management</strong>.</li>
+                <li>Tìm đơn hàng test gần nhất của tài khoản QC (lọc theo email).</li>
+                <li>Chọn <strong>Refund</strong> và tích <strong>Remove entitlement</strong> để thu hồi quyền sở hữu. Sau đó tài khoản QC mua lại được ngay (chi tiết ở <strong>Chuyên Đề 06</strong>).</li>
+                <li>Hoặc dùng một Gmail test mới nằm trong danh sách <strong>License testing</strong>.</li>
+              </ol>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý cho dev:</strong> khi nhận code 7, app nên gọi <code class="${inlineCode}">queryPurchasesAsync()</code> và mở khóa tính năng cho người dùng (restore), thay vì chỉ báo lỗi. Người dùng thật cài lại app hoặc đổi máy cũng sẽ gặp đúng mã này. Cách consume tạm trong build debug đã nói ở <strong>Chuyên Đề 03</strong>.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(3, "ITEM_UNAVAILABLE (code 4): sản phẩm hoặc testing track chưa sẵn sàng")}
+            <div class="${card}">
+              <p class="${text}"><strong>Lý do thường gặp:</strong></p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>App trên máy QC có <code class="${inlineCode}">applicationId</code> hoặc <code class="${inlineCode}">versionCode</code> không khớp với bản build đang có trên track (Internal / Closed testing) của Play Console.</li>
+                <li>Tài khoản Google trên máy QC <strong>chưa chấp nhận lời mời test</strong> (chưa bấm link opt-in <code class="${inlineCode}">https://play.google.com/apps/testing/&lt;package_name&gt;</code>).</li>
+                <li>Sản phẩm trên Play Console đang <strong>Inactive</strong>, hoặc vừa tạo/chỉnh sửa và Google chưa đồng bộ xong (có thể mất từ vài phút đến vài tiếng).</li>
+              </ul>
+              <p class="${text}"><strong>Checklist xử lý:</strong></p>
+              <ol class="list-decimal pl-5 space-y-1.5 ${text}">
+                <li>Email của QC có trong danh sách testers của track <strong>và</strong> trong <strong>License testing</strong>.</li>
+                <li>QC đã mở link opt-in bằng đúng tài khoản đang đăng nhập Play Store trên máy.</li>
+                <li>QC cài app từ Play Store qua testing track (cùng <code class="${inlineCode}">applicationId</code>, cùng chữ ký với bản upload).</li>
+                <li>Sản phẩm hiển thị <strong>Active</strong>; <code class="${inlineCode}">productId</code> trong code trùng khớp từng ký tự.</li>
+              </ol>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(4, "DEVELOPER_ERROR (code 5): code gọi API sai")}
+            <div class="${card}">
+              <p class="${text}"><strong>Lý do:</strong> lỗi nằm ở phía app, không phải Play Console. Hay gặp nhất:</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>Truyền sai <code class="${inlineCode}">ProductType</code>: non-consumable phải query với <code class="${inlineCode}">ProductType.INAPP</code>, không phải <code class="${inlineCode}">SUBS</code> (và ngược lại với subscription).</li>
+                <li><code class="${inlineCode}">ProductDetails</code> truyền vào <code class="${inlineCode}">BillingFlowParams</code> không lấy từ kết quả <code class="${inlineCode}">queryProductDetailsAsync()</code>, hoặc truyền sai ID.</li>
+              </ul>
+              <p class="${text}"><strong>Cách xử lý:</strong> xem logcat (<code class="${inlineCode}">debugMessage</code> thường nói rõ tham số nào sai), kiểm tra lại params truyền vào <code class="${inlineCode}">BillingFlowParams</code>.</p>
+              <pre class="${code}"><code>val params = QueryProductDetailsParams.newBuilder()
+    .setProductList(listOf(
+        QueryProductDetailsParams.Product.newBuilder()
+            .setProductId("remove_ads_lifetime")
+            .setProductType(BillingClient.ProductType.INAPP) // non-consumable = INAPP
+            .build()
+    ))
+    .build()</code></pre>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý:</strong> nhớ chờ <code class="${inlineCode}">onBillingSetupFinished()</code> trả về <code class="${inlineCode}">OK</code> rồi mới query/launch. Gọi khi <code class="${inlineCode}">BillingClient</code> chưa kết nối xong thường trả về <code class="${inlineCode}">SERVICE_DISCONNECTED</code> (-1) hoặc lỗi khác; cần reconnect rồi thử lại.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(5, "Bảng tra nhanh")}
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
+              <table class="w-full text-sm bg-white dark:bg-slate-800/30">
+                <thead class="bg-slate-50 dark:bg-slate-800/60">
+                  <tr>
+                    <th class="${th}">Response code</th>
+                    <th class="${th}">Nguyên nhân chính</th>
+                    <th class="${th}">Ai sửa / sửa ở đâu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="${td}"><strong>7</strong> ITEM_ALREADY_OWNED</td>
+                    <td class="${td}">Tài khoản test đã mua non-consumable trước đó</td>
+                    <td class="${td}">Dev: Refund + revoke trong Order management, hoặc đổi tài khoản test</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>4</strong> ITEM_UNAVAILABLE</td>
+                    <td class="${td}">Chưa opt-in, build không khớp track, sản phẩm Inactive/chưa đồng bộ</td>
+                    <td class="${td}">QC + Dev: kiểm tra Play Console, link opt-in, cài từ Play Store</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>5</strong> DEVELOPER_ERROR</td>
+                    <td class="${td}">Sai <code class="${inlineCode}">ProductType</code>, ID hoặc params</td>
+                    <td class="${td}">Dev: sửa code, đọc <code class="${inlineCode}">debugMessage</code> trong logcat</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `
+    },
+    {
+      id: "refund-test-order",
+      num: "06",
+      badge: "Testing",
+      title: "Refund Đơn Test & Remove Entitlement",
+      desc: "Refund đơn License testing có mất tiền không? Ý nghĩa từng trường trên màn hình Refund order, vì sao phải tích Remove entitlement, và khi nào refund mà không thu hồi quyền.",
+      content: `
+        <div class="space-y-8">
+          ${header("06", "QC Testing", "Refund Đơn Test & Remove Entitlement", "QC đã mua gói Lifetime và bị chặn ITEM_ALREADY_OWNED. Cách reset là Refund đơn test trong Order management, nhưng phải tích đúng một ô thì tài khoản mới mua lại được.")}
+
+          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <p class="text-emerald-700 dark:text-emerald-300 text-sm"><i class="fa-solid fa-circle-check mr-1"></i> <strong>Ý chính:</strong> refund đơn của License tester <strong>không mất đồng nào</strong>. Khi test nội bộ, luôn tích <strong>Remove entitlement</strong>: chỉ refund mà không tích thì tài khoản test vẫn sở hữu gói và vẫn không mua lại được.</p>
+          </div>
+
+          <section class="space-y-4">
+            ${sectionTitle(1, "Nhận diện đơn test trước khi bấm Refund")}
+            <div class="${card}">
+              <p class="${text}">Mở <strong>Order management &rarr; chọn đơn</strong>. Một đơn mua bằng tài khoản License testing có các dấu hiệu:</p>
+              <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700/50">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50 dark:bg-slate-800/60">
+                    <tr>
+                      <th class="${th}">Trường</th>
+                      <th class="${th}">Ví dụ</th>
+                      <th class="${th}">Ý nghĩa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="${td}">Product</td><td class="${td}"><code class="${inlineCode}">Test: Lifetime (com.daily.strong ...)</code></td><td class="${td}">Tiền tố <strong>Test:</strong> &rarr; mua bằng thẻ giả lập "Test card, always approves", thẻ thật của tester không bị trừ.</td></tr>
+                    <tr><td class="${td}">Estimated revenue</td><td class="${td}">AUD 0.00</td><td class="${td}">Google ghi nhận doanh thu 0, không có dòng tiền thật vào tài khoản merchant.</td></tr>
+                    <tr><td class="${td}">List price / Total</td><td class="${td}">VND 1,300,000 / VND 1,274,000</td><td class="${td}">Chỉ là dữ liệu giao dịch mẫu theo giá sản phẩm, không phải tiền thật.</td></tr>
+                    <tr><td class="${td}">Order status</td><td class="${td}">Processed</td><td class="${td}">Giao dịch đã hoàn tất &rarr; tài khoản đang sở hữu gói.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="${text}">Vì không có tiền thật nạp vào hay rút ra, refund đơn test <strong>không phát sinh phí giao dịch hay phí phạt</strong>. Tác dụng duy nhất (khi tích Remove entitlement) là làm sạch trạng thái sở hữu của tài khoản test.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+              <p class="text-red-700 dark:text-red-300 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Cẩn thận:</strong> đơn <strong>không</strong> có tiền tố <strong>Test:</strong> và có Estimated revenue khác 0 là đơn của người dùng thật. Refund đơn đó là hoàn tiền thật. Luôn kiểm tra hai trường này trước khi bấm.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(2, "Các trường trên màn hình Refund order")}
+            <div class="${card}">
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Entitlement &rarr; Remove entitlement</strong> (quan trọng nhất khi test): thu hồi quyền sở hữu sản phẩm khỏi tài khoản Google. <strong>Bắt buộc tích</strong> khi reset cho QC.</li>
+                <li><strong>Refund percentage / Refund amount</strong> (ví dụ <code class="${inlineCode}">100%</code> / <code class="${inlineCode}">VND 1,274,000</code>): tỷ lệ và số tiền hoàn theo đơn gốc. Với đơn test chỉ mang tính hiển thị.</li>
+                <li><strong>Refund reason</strong> (ví dụ <code class="${inlineCode}">Buyer's remorse</code>): lý do hoàn tiền. Với đơn test chọn lý do nào cũng được.</li>
+              </ul>
+              <p class="${text}">Tích <strong>Remove entitlement</strong> rồi bấm nút <strong>Refund</strong> ở góc dưới bên phải để hoàn tất.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(3, "Sau khi Refund + Remove entitlement")}
+            <div class="${card}">
+              <p class="${text}">Google Play thu hồi quyền sở hữu, tài khoản trở về trạng thái như người dùng chưa từng mua <code class="${inlineCode}">productId</code> đó:</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>Lỗi <code class="${inlineCode}">ITEM_ALREADY_OWNED</code> không còn; QC mở luồng thanh toán và mua lại gói Lifetime được ngay.</li>
+                <li>Nếu app vẫn hiển thị đã mở khóa: tắt hẳn app rồi mở lại để <code class="${inlineCode}">queryPurchasesAsync()</code> chạy lại và lấy danh sách quyền sở hữu mới. Nếu app tự lưu trạng thái premium (SharedPreferences, DataStore, DB) thì cần xóa dữ liệu app.</li>
+              </ul>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Gợi ý cho dev:</strong> app nên coi kết quả <code class="${inlineCode}">queryPurchasesAsync()</code> (hoặc backend) là nguồn sự thật mỗi lần khởi động, thay vì chỉ tin cờ premium lưu local. Như vậy gói bị thu hồi (refund, chargeback) sẽ tự khóa lại đúng.</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(4, "Refund mà không tích Remove entitlement")}
+            <div class="${card}">
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li><strong>Người dùng:</strong> được hoàn tiền, nhưng Google Play <strong>không thu hồi</strong> quyền sở hữu sản phẩm.</li>
+                <li><strong>App:</strong> <code class="${inlineCode}">queryPurchasesAsync(ProductType.INAPP)</code> vẫn trả về purchase đó, nên app vẫn mở khóa premium bình thường.</li>
+                <li><strong>Khi test:</strong> tài khoản QC vẫn bị <code class="${inlineCode}">ITEM_ALREADY_OWNED</code>, không mua lại được.</li>
+              </ul>
+              <p class="${text}"><strong>Google tạo tùy chọn này để làm gì?</strong> Chủ yếu cho Customer Service trên production (<strong>goodwill refund</strong>):</p>
+              <ul class="list-disc pl-5 space-y-1.5 ${text}">
+                <li>Khách gặp lỗi trải nghiệm nghiêm trọng, công ty bồi thường bằng cách hoàn tiền nhưng vẫn để khách dùng tiếp gói trọn đời.</li>
+                <li>Khách bị tính phí nhầm do lỗi kỹ thuật; hoàn tiền nhưng không muốn tước quyền truy cập.</li>
+              </ul>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <p class="text-amber-700 dark:text-amber-300 text-sm"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Lưu ý nếu có backend:</strong> nếu server theo dõi <strong>Voided Purchases API</strong> hoặc Real-time developer notifications và tự khóa quyền khi có refund, thì logic đó của bạn quyết định kết quả cuối cùng. Kiểm tra backend trước khi hứa với khách "hoàn tiền nhưng vẫn giữ gói".</p>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            ${sectionTitle(5, "Tóm tắt")}
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
+              <table class="w-full text-sm bg-white dark:bg-slate-800/30">
+                <thead class="bg-slate-50 dark:bg-slate-800/60">
+                  <tr>
+                    <th class="${th}">Tùy chọn</th>
+                    <th class="${th}">Tiền</th>
+                    <th class="${th}">Quyền sở hữu</th>
+                    <th class="${th}">Dùng khi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="${td}"><strong>Refund + Remove entitlement</strong></td>
+                    <td class="${td}">Hoàn lại</td>
+                    <td class="${td}">Bị thu hồi, mua lại được</td>
+                    <td class="${td}">Reset tài khoản QC; refund thông thường trên production</td>
+                  </tr>
+                  <tr>
+                    <td class="${td}"><strong>Chỉ Refund</strong></td>
+                    <td class="${td}">Hoàn lại</td>
+                    <td class="${td}">Giữ nguyên</td>
+                    <td class="${td}">Goodwill refund cho khách thật</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      `
     }
   ]
 };
