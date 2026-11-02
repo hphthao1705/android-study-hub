@@ -31,6 +31,7 @@
 | **Media & Streaming** | **HTTP Live Streaming (HLS) & Video Processing** | I-frame/GOP segmentation, `.ts` vs `.m4s`, Low-Latency HLS, SSAI, hardware DRM, Media3 ExoPlayer (ABR) & Transformer. |
 | **UI & Graphics** | **Android Graphics & Image Assets** | Vector vs Raster, density buckets, Bitmap memory management, Feed/Story export specs for Facebook & Instagram. |
 | **Monetization** | **Google Play Monetization** | Paid App vs In-app Products vs Subscriptions, Play Billing (`consumeAsync` / `acknowledgePurchase`), Play Console vs Google Cloud, server-side receipt validation. |
+| **Build & Release** | **Build & Release trên Google Play** | Internal / Closed / Open testing tracks, `versionCode` vs `versionName` & SemVer, Internal app sharing, Pre-launch report, Closed testing release walkthrough & review before go-live, App access demo accounts. |
 | **AI Tools** | **Claude** | Using Claude in the Android development workflow *(in progress)*. |
 | **Developer Tools** | **Android Studio** | Git branch sync & cleanup (`fetch.prune`, `git fetch -p`, removing merged local branches). |
 
@@ -44,6 +45,7 @@ android-study-hub/
 ├── netlify.toml                   # Netlify config (zero-build static site)
 ├── README.md                      # Project documentation
 ├── css/
+├── images/                    # Lesson screenshots (per course)
 └── js/
     ├── app.js                     # SPA logic: dashboard, reader, search, theme
     ├── data/
@@ -55,6 +57,7 @@ android-study-hub/
         ├── hls-streaming.js       # HTTP Live Streaming (HLS)
         ├── graphics-assets.js     # Android Graphics & Image Assets
         ├── play-monetization.js   # Google Play Monetization
+        ├── play-release.js        # Build & Release trên Google Play
         ├── claude.js              # Claude
         └── android-studio.js      # Android Studio
 ```

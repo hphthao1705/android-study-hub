@@ -5,6 +5,7 @@ import { graphicsAssetsCourse } from '../courses/graphics-assets.js';
 import { claudeCourse } from '../courses/claude.js';
 import { androidStudioCourse } from '../courses/android-studio.js';
 import { playMonetizationCourse } from '../courses/play-monetization.js';
+import { playReleaseCourse } from '../courses/play-release.js';
 
 export const coursesRepository = [
   coroutinesCourse,
@@ -13,5 +14,6 @@ export const coursesRepository = [
   graphicsAssetsCourse,
   claudeCourse,
   playMonetizationCourse,
+  playReleaseCourse,
   androidStudioCourse
 ];
