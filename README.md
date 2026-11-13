@@ -33,7 +33,7 @@
 | **Monetization** | **Google Play Monetization** | Paid App vs In-app Products vs Subscriptions, Play Billing (`consumeAsync` / `acknowledgePurchase`), Play Console vs Google Cloud, server-side receipt validation. |
 | **Build & Release** | **Build & Release trên Google Play** | Internal / Closed / Open testing tracks, `versionCode` vs `versionName` & SemVer, Internal app sharing, Pre-launch report, Closed testing release walkthrough & review before go-live, App access demo accounts. |
 | **AI Tools** | **Claude** | Using Claude in the Android development workflow *(in progress)*. |
-| **Developer Tools** | **Android Studio** | Git branch sync & cleanup (`fetch.prune`, `git fetch -p`, removing merged local branches). |
+| **Developer Tools** | **Android Studio** | Git branch sync & cleanup (`fetch.prune`, `git fetch -p`, removing merged local branches); cloning private repos with GitHub CLI (`gh auth login -w`, `gh repo clone`). |
 
 ---
 
